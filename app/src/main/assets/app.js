@@ -57,11 +57,12 @@
     { clave: 'formato24', etiqueta: 'Hora', opciones: [{ v: false, t: '12 h (a. m. / p. m.)' }, { v: true, t: '24 h' }] },
     { clave: 'mezclarFavoritas', etiqueta: 'Mis favoritas de vez en cuando', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
     { clave: 'horizontales', etiqueta: 'Solo obras horizontales', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
-    { clave: 'noche', etiqueta: 'Atenuar de 11 p. m. a 7 a. m.', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
+    { clave: 'brillo', etiqueta: 'Brillo', barra: true, opciones: [10,20,30,40,50,60,70,80,90,100].map(function (n) { return { v: n, t: n + ' %' }; }) },
+    { clave: 'brilloNoche', etiqueta: 'Brillo de noche', barra: true, opciones: [10,20,30,40,50,60,70,80,90,100].map(function (n) { return { v: n, t: n + ' %' }; }) },
     { clave: 'cerrar', etiqueta: 'Cerrar', boton: true }
   ];
 
-  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'vidrio', ajuste: 'llenar', liquido: 70, posReloj: 'arriba', formato24: false, horizontales: true, noche: true, mezclarFavoritas: true };
+  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'vidrio', ajuste: 'llenar', liquido: 70, posReloj: 'arriba', formato24: false, horizontales: true, brillo: 100, brilloNoche: 50, mezclarFavoritas: true };
 
   var DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
   var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -95,6 +96,7 @@
       for (k in g) if (k in a) a[k] = g[k];
       // Versión 2: el estilo nuevo de pantalla completa es el de fábrica.
       if (g.version !== 2) a.estilo = 'vidrio';
+      if (g.noche === false && g.brilloNoche === undefined) a.brilloNoche = 100;
     } catch (e) { /* sin almacenamiento: se usan los valores de fábrica */ }
     return a;
   }
@@ -379,8 +381,26 @@
     $('fecha').textContent = DIAS[d.getDay()] + ' ' + d.getDate() + ' de ' + MESES[d.getMonth()];
     $('reloj-fecha').textContent = DIAS[d.getDay()] + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()];
     dibujarHora(false);
-    var nocturno = ajustes.noche && (h >= 23 || h < 7);
-    $('noche').className = nocturno ? 'activa' : '';
+    aplicarBrillo();
+  }
+
+  // ---------------------------------------------------------------- Brillo
+  // La tele no deja que una app cambie su luz de fondo por HDMI, así que
+  // oscurecemos la imagen con una capa negra encima.
+  function esDeNoche() { var h = new Date().getHours(); return h >= 23 || h < 7; }
+  function nivelBrillo() {
+    var dia = +ajustes.brillo || 100;
+    return esDeNoche() ? Math.min(dia, +ajustes.brilloNoche || 100) : dia;
+  }
+  function aplicarBrillo() {
+    $('noche').style.opacity = (Math.min(0.9, 1 - nivelBrillo() / 100)).toFixed(2);
+  }
+  function cambiarBrillo(dir) {
+    var clave = esDeNoche() ? 'brilloNoche' : 'brillo';
+    ajustes[clave] = Math.max(10, Math.min(100, (+ajustes[clave] || 100) + dir * 10));
+    guardarAjustes();
+    aplicarBrillo();
+    avisar((clave === 'brilloNoche' ? 'Brillo de noche ' : 'Brillo ') + '<b>' + ajustes[clave] + ' %</b>', 1800);
   }
 
   // ---------------------------------------------------------------- Reloj de vidrio líquido
@@ -549,6 +569,7 @@
         li.appendChild(val);
       }
       ul.appendChild(li);
+      if (i === filaActiva && li.scrollIntoView) li.scrollIntoView({ block: 'nearest' });
     });
   }
 
@@ -591,7 +612,9 @@
       dibujarHora(true);
     } else if (clave === 'estilo' || clave === 'ajuste' || clave === 'posReloj') {
       aplicarEstilo();
-    } else if (clave === 'formato24' || clave === 'noche') {
+    } else if (clave === 'brillo' || clave === 'brilloNoche') {
+      aplicarBrillo();
+    } else if (clave === 'formato24') {
       actualizarReloj();
     }
   }
@@ -635,9 +658,10 @@
     }
     if (t === 'der') siguiente();
     else if (t === 'izq') anterior();
-    else if (t === 'ok' || t === 'menu' || t === 'abajo') abrirPanel();
+    else if (t === 'ok' || t === 'menu') abrirPanel();
     else if (t === 'pausa') alternarPausa();
-    else if (t === 'arriba') mostrarAyuda();
+    else if (t === 'arriba') cambiarBrillo(1);
+    else if (t === 'abajo') cambiarBrillo(-1);
   });
 
   function alternarPausa() {
@@ -647,7 +671,7 @@
   }
 
   function mostrarAyuda() {
-    avisar('<b>◀ ▶</b> cambiar obra &nbsp;·&nbsp; <b>OK</b> ajustes &nbsp;·&nbsp; <b>⏯</b> dejar fija', 5000);
+    avisar('<b>◀ ▶</b> cambiar obra &nbsp;·&nbsp; <b>▲ ▼</b> brillo &nbsp;·&nbsp; <b>OK</b> ajustes', 6000);
   }
 
   // Botones que la app de Android reenvía (Menú, Atrás, adelantar, regresar, pausa).
