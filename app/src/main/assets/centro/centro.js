@@ -38,7 +38,7 @@
       horas: [{ h: 'Ahora', i: 'luna', t: 17 }, { h: '3 a. m.', i: 'luna', t: 15 }, { h: '6 a. m.', i: 'nube', t: 13 },
               { h: '9 a. m.', i: 'parcial', t: 17 }, { h: '12 p. m.', i: 'sol', t: 23 }, { h: '3 p. m.', i: 'sol', t: 25 }] },
     alarma: enDias(1, 7, 0),
-    cuenta: { titulo: 'Madrid', fecha: new Date(2027, 0, 11), nota: 'Comillas · ICADE' },
+    cuenta: { titulo: 'Madrid', fecha: new Date(2027, 0, 7), clases: new Date(2027, 0, 14) },
     eventos: [
       { ini: hoyA(9, 0), fin: hoyA(10, 30), titulo: 'Taller de Algoritmos y Programación', lugar: 'IBERO' },
       { ini: hoyA(13, 0), fin: hoyA(14, 0), titulo: 'Comida con distribuidor', lugar: 'Polanco' },
@@ -220,12 +220,16 @@
     }
 
     if (D.cuenta && D.cuenta.fecha) {
+      var hoy0 = new Date(ahora); hoy0.setHours(0, 0, 0, 0);
+      var diasA = function (f) { return Math.max(0, Math.round((f - hoy0) / 86400000)); };
+      var corta = function (f) { return f.getDate() + ' de ' + MESES[f.getMonth()]; };
       $('cuenta-titulo').textContent = D.cuenta.titulo;
-      $('cuenta-dias').textContent = Math.max(0, Math.ceil((D.cuenta.fecha - ahora) / 86400000));
-      $('cuenta-nota').textContent = D.cuenta.nota;
-    } else {
-      $('cuenta-dias').textContent = '—';
-      $('cuenta-nota').textContent = 'Falta la fecha del viaje';
+      $('cuenta-dias').textContent = diasA(D.cuenta.fecha);
+      $('cuenta-nota').textContent = corta(D.cuenta.fecha);
+      if (D.cuenta.clases) {
+        $('clases-dias').textContent = diasA(D.cuenta.clases);
+        $('clases-nota').textContent = corta(D.cuenta.clases) + ' · ICADE';
+      }
     }
 
     // Hoy: lo que sigue (máximo 3); si ya pasó casi todo, se completa con lo último que pasó.
@@ -414,7 +418,14 @@
     if (!(window.Android && Android.descargar)) return pedir(url.replace(/^webcal:/i, 'https:'), 30000);
     return new Promise(function (ok, falla) {
       var id = 'd' + (++nDesc);
-      descargas[id] = function (t, e) { if (t) ok(t); else falla(new Error(e || 'vacío')); };
+      descargas[id] = function (t, e) {
+        if (!t) { falla(new Error(e || 'vacío')); return; }
+        if (t.indexOf('ok:') === 0) {
+          var contenido = '';
+          try { contenido = Android.leer('desc-' + id); } catch (er) {}
+          if (contenido) ok(contenido); else falla(new Error('no se pudo leer'));
+        } else ok(t);
+      };
       setTimeout(function () { if (descargas[id]) { delete descargas[id]; falla(new Error('tiempo')); } }, 60000);
       Android.descargar(id, url);
     });
@@ -492,8 +503,9 @@
     var pendientes = links.length, todos = [], alguno = false, errores = [];
     links.forEach(function (link) {
       descargar(link.url).then(function (t) {
+        var evs;
+        try { evs = window.leerICS(t, hoy, pasado); } catch (er) { throw new Error('formato'); }
         alguno = true;
-        var evs = window.leerICS(t, hoy, pasado);
         if (link.nombre) evs.forEach(function (e) { e.calendario = link.nombre; });
         todos = todos.concat(evs);
       }).catch(function (e) { errores.push((link.nombre || 'calendario') + ': ' + e.message); }).then(function () {
@@ -616,10 +628,10 @@
   function arrancar() {
     var cfg = leerJSON('config');
     if (cfg) for (var k in cfg) CONFIG[k] = cfg[k];
-    if (CONFIG.madrid) {
-      var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(CONFIG.madrid);
-      if (m) D.cuenta = { titulo: 'Madrid', fecha: new Date(+m[1], +m[2] - 1, +m[3]), nota: 'Comillas · ICADE' };
-    }
+    function fechaISO(t) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+    var vuelo = fechaISO(CONFIG.madrid) || new Date(2027, 0, 7);
+    var clases = fechaISO(CONFIG.clases) || new Date(2027, 0, 14);
+    D.cuenta = { titulo: 'Madrid', fecha: vuelo, nota: 'Vuelo · 7 de enero', clases: clases };
     leerIphone(); leerClaude();
     actualizarClima(); setInterval(actualizarClima, 20 * 60000);
     actualizarCambio(); setInterval(actualizarCambio, 6 * 3600000);

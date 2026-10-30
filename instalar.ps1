@@ -191,6 +191,7 @@ if ($hayCentro) {
             calendario  = "$($usuario.calendario)"
             calendarios = @($usuario.calendarios)
             madrid      = "$($usuario.madrid)"
+            clases      = "$($usuario.clases)"
             cuartoSonos = 'Diego'
             aparatos    = $aparatos
         }
@@ -206,6 +207,12 @@ $b = Get-CimInstance Win32_Battery | Select-Object -First 1
 $st = [int]$b.BatteryStatus
 $datos = @{ bateria = [int]$b.EstimatedChargeRemaining; cargando = ($st -eq 2 -or $st -ge 6); enviado = (Get-Date).ToString('o') } | ConvertTo-Json -Compress
 try { Invoke-RestMethod -Uri "http://${ip}:8765/laptop" -Method Post -Body $datos -ContentType 'application/json' -TimeoutSec 5 | Out-Null } catch { }
+# Resumen de Claude: una tarea programada de Claude lo deja en marco-arte\claude.json
+$cl = Join-Path $c 'claude.json'
+if (Test-Path $cl) {
+  $txt = [IO.File]::ReadAllText($cl)
+  try { Invoke-RestMethod -Uri "http://${ip}:8765/claude" -Method Post -Body ([Text.Encoding]::UTF8.GetBytes($txt)) -ContentType 'application/json; charset=utf-8' -TimeoutSec 5 | Out-Null } catch { }
+}
 '@
         [IO.File]::WriteAllText((Join-Path $carpeta 'laptop.ps1'), $scriptLaptop, $utf8)
         try {

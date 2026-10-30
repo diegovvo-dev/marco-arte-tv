@@ -81,7 +81,7 @@ public class MainActivity extends Activity {
         if (!f.isFile()) return "";
         try {
             FileInputStream in = new FileInputStream(f);
-            byte[] b = new byte[(int) Math.min(f.length(), 512 * 1024)];
+            byte[] b = new byte[(int) Math.min(f.length(), 8 * 1024 * 1024)];
             int leidos = 0;
             while (leidos < b.length) {
                 int r = in.read(b, leidos, b.length - leidos);
@@ -160,6 +160,12 @@ public class MainActivity extends Activity {
         public String leer(String nombre) {
             String[] ok = {"iphone", "laptop", "tele", "claude", "config"};
             for (String n : ok) if (n.equals(nombre)) return leerArchivo(new File(carpeta(), nombre + ".json"));
+            if (nombre.matches("desc-d[0-9]+")) {
+                File f = new File(carpeta(), nombre + ".txt");
+                String t = leerArchivo(f);
+                f.delete();
+                return t;
+            }
             return "";
         }
 
@@ -252,7 +258,12 @@ public class MainActivity extends Activity {
                             while ((n = in.read(buf)) > 0 && b.size() < 8 * 1024 * 1024) b.write(buf, 0, n);
                             in.close();
                             c.disconnect();
-                            texto = b.toString("UTF-8");
+                            // Se guarda en un archivo: pasar textos muy grandes directo a la página puede fallar.
+                            java.io.File f = new java.io.File(carpeta(), "desc-" + id.replaceAll("[^a-z0-9]", "") + ".txt");
+                            java.io.FileOutputStream o = new java.io.FileOutputStream(f);
+                            b.writeTo(o);
+                            o.close();
+                            texto = "ok:" + b.size();
                             break;
                         }
                     } catch (Exception e) {
