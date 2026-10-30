@@ -40,7 +40,8 @@ Instala la versión más nueva, copia las fotos de `marco-arte\fotos` (en tu com
 | Botón | Qué hace |
 |---|---|
 | ◀ ▶ | Obra anterior / siguiente |
-| OK o ☰ | Abre los ajustes |
+| Mantener OK | Deja fija la obra (se guarda aunque se apague la tele). Otra vez para que vuelva a cambiar |
+| ☰ | Abre los ajustes |
 | ⏪ ⏯ ⏩ | Con Spotify: canción anterior, pausa y siguiente. Sin Spotify: cambian la obra o la dejan fija |
 | ▲ ▼ | Brillo |
 | Atrás | Cierra los ajustes o sale de la app |

@@ -279,3 +279,11 @@ body { font-family: var(--texto); -webkit-font-smoothing: antialiased; cursor: n
 #musica { left: auto; right: 3.2vw; bottom: 5vh; -webkit-transform: none; transform: none; }
 
 #aviso { white-space: normal; max-width: 70vw; text-align: center; }
+
+/* Etiqueta "Fija" en la cartela */
+#obra-fija { position: relative; display: inline-flex; display: -webkit-inline-flex; -webkit-align-items: center; align-items: center; gap: .4vw;
+  margin-bottom: 1.2vh; padding: .5vh 1vw; border-radius: 100vh; font-family: "InterVar", "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.5vh; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #fff;
+  background: rgba(255,255,255,.22); box-shadow: inset 0 1px 0 rgba(255,255,255,.4); }
+#obra-fija[hidden] { display: none; }
+#obra-fija svg { width: 1.7vh; height: 1.7vh; fill: #fff; }

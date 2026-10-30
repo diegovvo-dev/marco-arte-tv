@@ -82,7 +82,7 @@
     { clave: 'cerrar', etiqueta: 'Cerrar', boton: true }
   ];
 
-  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'vidrio', ajuste: 'llenar', liquido: 70, posReloj: 'arriba', formato24: false, horizontales: true, brillo: 100, brilloNoche: 50, cuartoSonos: 'Diego', mezclarFavoritas: true, misFotos: true };
+  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'vidrio', ajuste: 'llenar', liquido: 70, posReloj: 'arriba', formato24: false, horizontales: true, brillo: 100, brilloNoche: 50, cuartoSonos: 'Diego', obraFija: null, mezclarFavoritas: true, misFotos: true };
 
   var DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
   var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -305,6 +305,7 @@
     $('atm-' + capa).className = 'capa';
     capa = siguiente;
     obraActual = o;
+    if (pausado) guardarFija();
     $('espera').className = 'oculto';
     mostrarCartela(o);
   }
@@ -882,10 +883,25 @@
     return porNombre[e.key] || TECLAS[e.keyCode] || null;
   }
 
+  var okAbajo = 0, okLargo = false, okTimer = null;
+  document.addEventListener('keyup', function (e) {
+    if (nombreTecla(e) !== 'ok' || !okAbajo) return;
+    clearTimeout(okTimer);
+    if (!okLargo) mostrarAyuda();
+    okAbajo = 0; okLargo = false;
+  });
+
   document.addEventListener('keydown', function (e) {
     var t = nombreTecla(e);
     if (!t) return;
     e.preventDefault();
+    if (t === 'ok' && !panelAbierto) {
+      if (!okAbajo) {
+        okAbajo = Date.now(); okLargo = false;
+        okTimer = setTimeout(function () { okLargo = true; alternarPausa(); }, 750);
+      }
+      return;
+    }
     if (panelAbierto) {
       if (t === 'arriba') { filaActiva = (filaActiva - 1 + FILAS.length) % FILAS.length; pintarPanel(); }
       else if (t === 'abajo') { filaActiva = (filaActiva + 1) % FILAS.length; pintarPanel(); }
@@ -897,20 +913,32 @@
     }
     if (t === 'der') siguiente();
     else if (t === 'izq') anterior();
-    else if (t === 'ok' || t === 'menu') abrirPanel();
+    else if (t === 'menu') abrirPanel();
     else if (t === 'pausa') window.alPausa();
     else if (t === 'arriba') cambiarBrillo(1);
     else if (t === 'abajo') cambiarBrillo(-1);
   });
 
+  // Dejar fija la obra: se guarda, así sigue fija aunque se apague la tele.
+  function guardarFija() {
+    if (!obraActual) return;
+    var copia = {};
+    for (var k in obraActual) copia[k] = obraActual[k];
+    ajustes.obraFija = pausado ? copia : null;
+    guardarAjustes();
+    marcarFija();
+  }
+  function marcarFija() { $('obra-fija').hidden = !pausado; }
+
   function alternarPausa() {
     pausado = !pausado;
-    if (pausado) { clearTimeout(temporizador); avisar('Obra fija. <b>⏯</b> para volver a rotar'); }
-    else { programar(); avisar('Rotación activada'); }
+    if (pausado) { clearTimeout(temporizador); avisar('Obra fija. Mantén presionado <b>OK</b> otra vez para que vuelva a cambiar.', 4000); }
+    else { programar(); avisar('Las obras vuelven a cambiar solas', 3000); }
+    guardarFija();
   }
 
   function mostrarAyuda() {
-    avisar('<b>◀ ▶</b> cambiar obra &nbsp;·&nbsp; <b>▲ ▼</b> brillo &nbsp;·&nbsp; <b>OK</b> ajustes' +
+    avisar('<b>◀ ▶</b> cambiar obra &nbsp;·&nbsp; <b>▲ ▼</b> brillo &nbsp;·&nbsp; mantén <b>OK</b> para fijar &nbsp;·&nbsp; <b>☰</b> ajustes' +
       (sp.cfg ? ' &nbsp;·&nbsp; <b>⏪ ⏯ ⏩</b> música' : ''), 6000);
   }
 
@@ -936,6 +964,14 @@
   actualizarClima();
   setInterval(actualizarClima, 20 * 60 * 1000);
   iniciarSpotify();
-  siguiente();
+  if (ajustes.obraFija && ajustes.obraFija.id) {
+    pausado = true;
+    cargando = true;
+    mostrarObra(ajustes.obraFija).then(function () {
+      historial = [ajustes.obraFija]; posHistorial = 0; cargando = false; marcarFija();
+    }, function () { cargando = false; pausado = false; siguiente(); });
+  } else {
+    siguiente();
+  }
   setTimeout(mostrarAyuda, 2500);
 })();
