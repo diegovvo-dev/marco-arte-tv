@@ -1,0 +1,45 @@
+plugins {
+    id 'com.android.application'
+}
+
+def runNumber = Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+
+android {
+    namespace 'dev.diegovvo.marcoarte'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'dev.diegovvo.marcoarte'
+        minSdk 22
+        targetSdk 34
+        versionCode runNumber
+        versionName "1.0.${runNumber}"
+    }
+
+    // Llave fija para que cada versión nueva se instale encima de la anterior.
+    signingConfigs {
+        release {
+            storeFile file('marco.keystore')
+            storePassword 'marcoarte'
+            keyAlias 'marco'
+            keyPassword 'marcoarte'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}

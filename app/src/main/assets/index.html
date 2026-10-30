@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marco Arte</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="app" class="galeria">
+
+  <div id="atmosfera"><div class="capa" id="atm-a"></div><div class="capa" id="atm-b"></div></div>
+
+  <main id="sala">
+    <div id="lienzo">
+      <div class="marco" id="marco-a"><img id="img-a" alt=""></div>
+      <div class="marco" id="marco-b"><img id="img-b" alt=""></div>
+      <div id="espera">
+        <p class="espera-titulo">Colgando la primera obra…</p>
+        <p class="espera-nota" id="espera-nota">Buscando pinturas en la colección del Art Institute of Chicago</p>
+      </div>
+    </div>
+
+    <aside id="columna">
+      <div id="hora-bloque">
+        <div id="hora"><span id="hora-num">--:--</span><span id="hora-ampm"></span></div>
+        <div id="fecha"></div>
+        <div id="clima"><span id="clima-temp"></span><span id="clima-texto"></span><span id="clima-rango"></span></div>
+      </div>
+
+      <div id="cartela">
+        <h1 id="obra-titulo"></h1>
+        <p id="obra-artista"></p>
+        <p id="obra-fecha"></p>
+        <p id="obra-tecnica"></p>
+        <p id="obra-credito"></p>
+      </div>
+    </aside>
+  </main>
+
+  <div id="noche"></div>
+  <div id="aviso" role="status"></div>
+
+  <div id="ajustes" hidden>
+    <div class="ajustes-caja">
+      <h2>Ajustes</h2>
+      <ul id="ajustes-lista"></ul>
+      <p class="ajustes-ayuda"><b>▲ ▼</b> moverse &nbsp;·&nbsp; <b>◀ ▶</b> cambiar &nbsp;·&nbsp; <b>Atrás</b> cerrar</p>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
