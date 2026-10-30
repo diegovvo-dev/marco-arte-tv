@@ -189,13 +189,13 @@
           var clase = e.fin < ahora ? 'pasado' : (e.ini <= ahora ? 'ahora' : '');
           var pil = clase === 'ahora' ? '<span class="pildora">Ahora</span>' : '';
           var horario = e.todoElDia ? 'Todo el día' : hora12(e.ini, false) + ' – ' + hora12(e.fin, true);
-          return '<li class="' + clase + '"><span class="cuando">' + (e.todoElDia ? 'Día' : hora12(e.ini, false)) + '</span>' +
+          return '<li class="' + clase + '"><span class="color" style="background:' + (e.color || 'transparent') + '"></span><span class="cuando">' + (e.todoElDia ? 'Día' : hora12(e.ini, false)) + '</span>' +
             '<span class="que">' + esc(e.titulo) + pil + '<small>' + horario + (e.lugar ? ' · ' + esc(e.lugar) : '') + '</small></span></li>';
         }).join('');
       } else vacio('eventos', 'Nada en el calendario hoy');
       $('hoy-resumen').textContent = siguen.length ? (siguen.length === 1 ? '1 por delante' : siguen.length + ' por delante') : 'Nada más hoy';
       $('eventos-manana').innerHTML = (D.manana || []).slice(0, 2).map(function (e) {
-        return '<li><span class="cuando">Mañana ' + (e.todoElDia ? '' : hora12(e.ini, false)) + '</span><span class="que">' + esc(e.titulo) + '</span></li>';
+        return '<li><span class="color" style="background:' + (e.color || 'transparent') + '"></span><span class="cuando">Mañana ' + (e.todoElDia ? '' : hora12(e.ini, false)) + '</span><span class="que">' + esc(e.titulo) + '</span></li>';
       }).join('');
     } else {
       vacio('eventos', 'Conecta tu calendario de iCloud');
@@ -393,19 +393,37 @@
     }).catch(function () {});
   }
 
-  // Calendario de iCloud (link público, webcal:// → https://)
+  // Calendarios de iCloud (links públicos, webcal:// → https://). Cada link trae su nombre;
+  // el color sigue al de tu iPhone.
+  var COLORES = { casa: '#5aa9e6', trabajo: '#d84fe8', ibero: '#ef4b4b', 'cumpleaños': '#f2cf45', europa: '#f3f3f1', 'los primos': '#f0913a' };
+  function colorDe(nombre) {
+    var n = (nombre || '').toLowerCase();
+    for (var k in COLORES) if (n.indexOf(k) >= 0) return COLORES[k];
+    return 'rgba(243,243,241,.5)';
+  }
   function actualizarCalendario() {
-    if (!CONFIG.calendario) return;
-    var url = CONFIG.calendario.replace(/^webcal:/i, 'https:');
-    pedir(url, 30000).then(function (t) {
-      var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-      var manana = new Date(hoy); manana.setDate(hoy.getDate() + 1);
-      var pasado = new Date(hoy); pasado.setDate(hoy.getDate() + 2);
-      var todos = window.leerICS(t, hoy, pasado);
-      D.eventos = todos.filter(function (e) { return e.ini < manana && e.fin > hoy; });
-      D.manana = todos.filter(function (e) { return e.ini >= manana && e.ini < pasado; });
-      repintar();
-    }).catch(function () {});
+    var links = CONFIG.calendarios || (CONFIG.calendario ? [CONFIG.calendario] : []);
+    links = links.filter(Boolean).map(function (x) { return typeof x === 'string' ? { url: x } : x; });
+    if (!links.length) return;
+    var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    var manana = new Date(hoy); manana.setDate(hoy.getDate() + 1);
+    var pasado = new Date(hoy); pasado.setDate(hoy.getDate() + 2);
+    var pendientes = links.length, todos = [], alguno = false;
+    links.forEach(function (link) {
+      pedir(link.url.replace(/^webcal:/i, 'https:'), 30000).then(function (t) {
+        alguno = true;
+        var evs = window.leerICS(t, hoy, pasado);
+        if (link.nombre) evs.forEach(function (e) { e.calendario = link.nombre; });
+        todos = todos.concat(evs);
+      }).catch(function () {}).then(function () {
+        if (--pendientes > 0 || !alguno) return;
+        todos.forEach(function (e) { e.color = colorDe(e.calendario); });
+        todos.sort(function (a, b) { return (a.todoElDia ? 0 : 1) - (b.todoElDia ? 0 : 1) || a.ini - b.ini; });
+        D.eventos = todos.filter(function (e) { return e.ini < manana && e.fin > hoy; });
+        D.manana = todos.filter(function (e) { return e.ini >= manana && e.ini < pasado; });
+        repintar();
+      });
+    });
   }
 
   // iPhone: el Atajo manda recordatorios, alarmas y batería al buzón de la tele

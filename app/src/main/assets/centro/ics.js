@@ -83,8 +83,9 @@
 
   window.leerICS = function (contenido, desde, hasta) {
     var lineas = desdoblar(contenido || '');
-    var eventos = [], ev = null;
+    var eventos = [], ev = null, calNombre = '';
     lineas.forEach(function (l) {
+      if (!ev && l.indexOf('X-WR-CALNAME:') === 0) calNombre = texto(l.slice(13));
       if (l === 'BEGIN:VEVENT') { ev = { exdate: [] }; return; }
       if (l === 'END:VEVENT') { if (ev && ev.ini) eventos.push(ev); ev = null; return; }
       if (!ev) return;
@@ -123,6 +124,7 @@
         salida.push({ ini: e.ini, fin: e.fin, titulo: e.titulo, lugar: e.lugar, todoElDia: e.todoElDia });
       }
     });
+    salida.forEach(function (e) { e.calendario = calNombre; });
     salida.sort(function (a, b) { return a.ini - b.ini; });
     return salida;
   };

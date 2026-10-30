@@ -161,3 +161,6 @@ body { font-family: var(--letra); -webkit-font-smoothing: antialiased; cursor: n
 #ajustes-lista li.info { margin-top: 10px; border-top: 1px solid rgba(255,255,255,.1); border-radius: 0; padding-top: 26px; }
 #ajustes-lista li.info .fila-ajuste { font-size: 22px; color: rgba(243,243,241,.5); }
 #ajustes-lista li.info b { font-weight: 500; color: rgba(243,243,241,.8); }
+
+.lista .color { width: 4px; -webkit-align-self: stretch; align-self: stretch; border-radius: 2px; -webkit-flex: none; flex: none; margin-right: -4px; opacity: .9; }
+.lista li.pasado .color { opacity: .5; }

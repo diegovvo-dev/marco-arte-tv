@@ -41,7 +41,7 @@ $hayCentro = $ipCentro -and $ipCentro -ne 'no'
 $archivoUsuario = Join-Path $carpeta 'config-usuario.json'
 $usuario = if (Test-Path $archivoUsuario) { Get-Content $archivoUsuario -Raw | ConvertFrom-Json } else { New-Object PSObject }
 if ($hayCentro) {
-    if (-not ($usuario.PSObject.Properties.Name -contains 'calendario')) {
+    if (-not ($usuario.PSObject.Properties.Name -contains 'calendario') -and -not ($usuario.PSObject.Properties.Name -contains 'calendarios')) {
         $cal = (Read-Host 'Link publico de tu calendario de iCloud (webcal://...). Deja vacio si aun no lo tienes').Trim()
         $usuario | Add-Member -NotePropertyName calendario -NotePropertyValue $cal -Force
     }
@@ -189,6 +189,7 @@ if ($hayCentro) {
         if ($usuario.PSObject.Properties.Name -contains 'aparatos') { $aparatos += @($usuario.aparatos) }
         $cfgCentro = @{
             calendario  = "$($usuario.calendario)"
+            calendarios = @($usuario.calendarios)
             madrid      = "$($usuario.madrid)"
             cuartoSonos = 'Diego'
             aparatos    = $aparatos
