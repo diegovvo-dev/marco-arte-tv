@@ -5,7 +5,23 @@
   'use strict';
 
   // ---------------------------------------------------------------- Opciones
+  // Obras favoritas de Diego. La imagen se pide a Wikipedia desde la tele;
+  // si no responde, se usan los archivos de Wikimedia Commons de respaldo.
+  var COMMONS = 'https://commons.wikimedia.org/wiki/Special:FilePath/';
+  var FAVORITAS = [
+    { id: 'fav-cana', favorita: true, title: 'Las bodas de Caná', artist_title: 'Paolo Veronese', date_display: '1562–1563',
+      medium_display: 'Óleo sobre lienzo · 6.77 × 9.94 m', credito: 'Museo del Louvre, París · Sala 711, frente a la Mona Lisa',
+      wiki: 'The_Wedding_at_Cana_(Veronese)',
+      respaldo: [COMMONS + encodeURIComponent('Paolo Veronese 008.jpg') + '?width=1920'] },
+    { id: 'fav-atenas', favorita: true, title: 'La escuela de Atenas', artist_title: 'Rafael Sanzio', date_display: '1509–1511',
+      medium_display: 'Fresco · Platón, Aristóteles, Sócrates y otros filósofos griegos', credito: 'Museos Vaticanos · Estancias de Rafael',
+      wiki: 'The_School_of_Athens',
+      respaldo: [COMMONS + encodeURIComponent('"The School of Athens" by Raffaello Sanzio da Urbino.jpg') + '?width=1920',
+                 COMMONS + encodeURIComponent('Sanzio 01.jpg') + '?width=1920'] }
+  ];
+
   var COLECCIONES = [
+    { id: 'favoritas', nombre: 'Mis favoritas', favoritas: true },
     { id: 'impresionismo', nombre: 'Impresionismo', q: 'impressionism', pintura: true },
     { id: 'postimpresionismo', nombre: 'Van Gogh y postimpresionismo', q: 'post-impressionism', pintura: true },
     { id: 'monet', nombre: 'Monet', q: 'Claude Monet', pintura: true },
@@ -36,12 +52,13 @@
     { clave: 'ciudad', etiqueta: 'Clima de', opciones: CIUDADES.map(function (c, i) { return { v: i, t: c.nombre }; }) },
     { clave: 'estilo', etiqueta: 'Estilo', opciones: [{ v: 'galeria', t: 'Galería' }, { v: 'inmersivo', t: 'Inmersivo' }] },
     { clave: 'formato24', etiqueta: 'Hora', opciones: [{ v: false, t: '12 h (a. m. / p. m.)' }, { v: true, t: '24 h' }] },
+    { clave: 'mezclarFavoritas', etiqueta: 'Mis favoritas de vez en cuando', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
     { clave: 'horizontales', etiqueta: 'Solo obras horizontales', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
     { clave: 'noche', etiqueta: 'Atenuar de 11 p. m. a 7 a. m.', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
     { clave: 'cerrar', etiqueta: 'Cerrar', boton: true }
   ];
 
-  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'galeria', formato24: false, horizontales: true, noche: true };
+  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'galeria', formato24: false, horizontales: true, noche: true, mezclarFavoritas: true };
 
   var DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
   var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -133,6 +150,12 @@
 
   function rellenarPila() {
     var col = coleccionActual();
+    if (col.favoritas) {
+      var lista = barajar(FAVORITAS.slice());
+      if (obraActual && lista[0].id === obraActual.id) lista.push(lista.shift());
+      pila = pila.concat(lista);
+      return Promise.resolve();
+    }
     var pagina = 1 + Math.floor(Math.random() * 4);
     var vistos = {};
     historial.forEach(function (o) { vistos[o.id] = true; });
@@ -157,12 +180,30 @@
   // ---------------------------------------------------------------- Imagen
   function urlImagen(o, ancho) { return IIIF + o.image_id + '/full/' + ancho + ',/0/default.jpg'; }
 
+  function urlWikipedia(titulo) {
+    return 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=pageimages&piprop=thumbnail&pithumbsize=1920&titles=' + encodeURIComponent(titulo);
+  }
+
+  function candidatas(o) {
+    if (!o.favorita) return Promise.resolve([urlImagen(o, 1686), urlImagen(o, 843)]);
+    return pedirJson(urlWikipedia(o.wiki), 12000).then(function (r) {
+      var urls = [];
+      var paginas = (r && r.query && r.query.pages) || {};
+      for (var k in paginas) if (paginas[k].thumbnail && paginas[k].thumbnail.source) urls.push(paginas[k].thumbnail.source);
+      return urls.concat(o.respaldo);
+    }, function () { return o.respaldo.slice(); });
+  }
+
   function precargar(o) {
+    return candidatas(o).then(function (lista) { return cargarPrimera(lista); });
+  }
+
+  function cargarPrimera(lista) {
     return new Promise(function (ok, falla) {
-      var intentos = [1686, 843];
+      var intentos = lista.slice();
       function probar() {
         if (!intentos.length) { falla(new Error('imagen')); return; }
-        var url = urlImagen(o, intentos.shift());
+        var url = intentos.shift();
         var img = new Image();
         img.onload = function () { ok({ url: url, w: img.naturalWidth, h: img.naturalHeight }); };
         img.onerror = probar;
@@ -216,7 +257,8 @@
       $('obra-artista').textContent = artista;
       $('obra-fecha').textContent = texto(o.date_display);
       $('obra-tecnica').textContent = traducirTecnica(o.medium_display);
-      $('obra-credito').textContent = 'Art Institute of Chicago' + (o.main_reference_number ? ' · Núm. ' + o.main_reference_number : '');
+      $('obra-credito').textContent = o.credito ? '♥ ' + o.credito :
+        'Art Institute of Chicago' + (o.main_reference_number ? ' · Núm. ' + o.main_reference_number : '');
       c.className = '';
     }, 700);
   }
@@ -238,7 +280,15 @@
     mostrarCartela(o);
   }
 
+  var obrasNuevas = 0;
+  var turnoFavorita = 0;
   function obtenerSiguiente() {
+    obrasNuevas++;
+    var col = coleccionActual();
+    if (!col.favoritas && ajustes.mezclarFavoritas && (obrasNuevas === 1 || obrasNuevas % 6 === 0)) {
+      var fav = FAVORITAS[turnoFavorita++ % FAVORITAS.length];
+      if (!obraActual || obraActual.id !== fav.id) return Promise.resolve(fav);
+    }
     if (pila.length) return Promise.resolve(pila.shift());
     return rellenarPila().then(function () { return pila.shift(); });
   }
