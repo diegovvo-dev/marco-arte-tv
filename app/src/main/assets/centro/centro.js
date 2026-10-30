@@ -378,10 +378,15 @@
 
   // Botones del control. La app de Android manda ☰ como window.alMenu() y Atrás como window.alAtras().
   window.alMenu = function () { if (panelAbierto) cerrarPanel(); else abrirPanel(); };
-  window.alAtras = function () { if (panelAbierto) { cerrarPanel(); return true; } return false; };
+  window.alAtras = function () {
+    if (alertaActual) { cerrarAlerta(); return true; }
+    if (panelAbierto) { cerrarPanel(); return true; }
+    return false;
+  };
   document.addEventListener('keydown', function (e) {
     var k = e.key, c = e.keyCode;
     if (k === 'ContextMenu' || c === 93 || c === 82) { e.preventDefault(); window.alMenu(); return; }
+    if (alertaActual && (k === 'Escape' || k === 'Backspace' || c === 27 || c === 8)) { e.preventDefault(); cerrarAlerta(); return; }
     if (!panelAbierto) return;
     e.preventDefault();
     if (k === 'ArrowUp' || c === 38) { filaActiva = (filaActiva + FILAS.length - 1) % FILAS.length; pintarPanel(); }
@@ -649,12 +654,34 @@
     var sOn = D.sonosEstado !== '' && D.sonosEstado != null;
     lista.push({ nombre: 'Sonos ' + (CONFIG.cuartoSonos || 'Diego'), icono: 'bocina', on: sOn || !D.sonosVisto,
       estado: !D.sonosVisto ? 'Buscando…' : !sOn ? 'Sin conexión' : D.sonosEstado === 'PLAYING' ? 'Sonando' : 'En pausa' });
-    if (D.iphone) {
-      var iOn = ahora - D.iphoneVisto < 3 * 3600000;
-      lista.push({ nombre: 'iPhone', icono: 'telefono', on: iOn, bateria: pct(D.iphone.bateria), carga: siCarga(D.iphone.cargando), estado: '' });
-    }
+    var iOn = !!D.iphone && ahora - D.iphoneVisto < 3 * 3600000;
+    lista.push({ nombre: 'iPhone', icono: 'telefono', on: iOn, bateria: iOn ? pct(D.iphone.bateria) : null, carga: iOn && siCarga(D.iphone.cargando),
+      estado: D.iphone ? 'Sin conexión' : 'Falta el Atajo' });
     D.aparatos = lista.slice(0, 6);
+    revisarPilas(D.aparatos);
   }
+
+  // ------------------------------------------------------------ Alerta de pila baja
+  // Al 20 % (y otra vez al 10 %) sale un triángulo rojo grande. Se quita con Atrás o al conectarlo.
+  var avisadas = {};   // nombre -> nivel ya avisado (20 o 10)
+  var alertaActual = null;
+  function revisarPilas(lista) {
+    lista.forEach(function (a) {
+      if (a.bateria == null || !a.on) return;
+      if (a.carga || a.bateria > 20) { delete avisadas[a.nombre]; if (alertaActual === a.nombre) cerrarAlerta(); return; }
+      var nivel = a.bateria <= 10 ? 10 : 20;
+      if (avisadas[a.nombre] && avisadas[a.nombre] <= nivel) { if (alertaActual === a.nombre) mostrarAlerta(a); return; }
+      avisadas[a.nombre] = nivel;
+      mostrarAlerta(a);
+    });
+  }
+  function mostrarAlerta(a) {
+    alertaActual = a.nombre;
+    texto('alerta-aparato', a.nombre);
+    texto('alerta-pila', a.bateria + ' %');
+    if ($('alerta').hidden) $('alerta').hidden = false;
+  }
+  function cerrarAlerta() { alertaActual = null; $('alerta').hidden = true; }
 
   var repintarPendiente = false;
   function repintar() {

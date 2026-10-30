@@ -313,3 +313,19 @@ html, body { position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
 .divisa.baja .flecha { color: #ff4d4d; } .divisa.baja .flecha svg { fill: #ff4d4d; }
 .divisa.igual .flecha { color: rgba(255,255,255,.6); } .divisa.igual .flecha svg { fill: rgba(255,255,255,.6); }
 #pie-actualizado { font-size: 16px; }
+
+/* Alerta de pila baja: triángulo rojo grande al centro */
+#alerta { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 9; background: rgba(0,0,0,.95);
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; }
+#alerta[hidden] { display: none; }
+.alerta-caja { text-align: center; color: #fff; }
+.alerta-triangulo { width: 820px; height: 726px; display: block; margin: 0 auto;
+  -webkit-filter: drop-shadow(0 0 60px rgba(255,59,48,.45)); filter: drop-shadow(0 0 60px rgba(255,59,48,.45));
+  -webkit-animation: latido 1.6s ease-in-out infinite; animation: latido 1.6s ease-in-out infinite; }
+@-webkit-keyframes latido { 0%,100% { opacity: 1; } 50% { opacity: .78; } }
+@keyframes latido { 0%,100% { opacity: 1; } 50% { opacity: .78; } }
+.alerta-titulo { margin-top: 30px; font-size: 44px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #ff3b30; }
+.alerta-aparato { margin-top: 10px; font-size: 76px; font-weight: 700; }
+.alerta-pila { font-size: 120px; font-weight: 700; line-height: 1.05; letter-spacing: -.02em; }
+.alerta-ayuda { margin-top: 24px; font-size: 26px; color: rgba(255,255,255,.75); }
+.alerta-ayuda b { color: #fff; }
