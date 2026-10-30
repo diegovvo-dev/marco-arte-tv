@@ -49,6 +49,21 @@
     </aside>
   </main>
 
+  <!-- Control de Spotify: solo pausar, adelantar y atrasar -->
+  <div id="musica" aria-live="polite">
+    <img id="musica-portada" alt="">
+    <div id="musica-info">
+      <div id="musica-titulo"></div>
+      <div id="musica-artista"></div>
+      <div id="musica-linea"><i id="musica-avance"></i></div>
+    </div>
+    <div id="musica-botones">
+      <span class="boton-musica" id="musica-anterior"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="2.6" height="14" rx="1"/><path d="M19 6.2v11.6a1 1 0 0 1-1.55.83L9 13.2a1.4 1.4 0 0 1 0-2.4l8.45-5.43A1 1 0 0 1 19 6.2z"/></svg></span>
+      <span class="boton-musica" id="musica-pausa"></span>
+      <span class="boton-musica" id="musica-siguiente"><svg viewBox="0 0 24 24"><rect x="17.4" y="5" width="2.6" height="14" rx="1"/><path d="M5 6.2v11.6a1 1 0 0 0 1.55.83L15 13.2a1.4 1.4 0 0 0 0-2.4L6.55 5.37A1 1 0 0 0 5 6.2z"/></svg></span>
+    </div>
+  </div>
+
   <div id="noche"></div>
   <div id="aviso" role="status"></div>
 

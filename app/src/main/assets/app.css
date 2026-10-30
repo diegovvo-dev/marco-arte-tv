@@ -229,3 +229,42 @@ body { font-family: var(--texto); -webkit-font-smoothing: antialiased; cursor: n
 #ajustes-lista li { padding: 1.05vh 1.1vw; font-size: 2vh; }
 #ajustes-lista li.boton { margin-top: 1.2vh; }
 .ajustes-ayuda { margin-top: 1.6vh; }
+
+/* =====================================================================
+   Control de Spotify: barra de vidrio abajo al centro
+   ===================================================================== */
+#musica { position: absolute; left: 50%; bottom: 5vh; z-index: 3; width: 31vw; display: none;
+  -webkit-transform: translateX(-50%); transform: translateX(-50%);
+  -webkit-align-items: center; align-items: center; gap: 1.2vw;
+  padding: 1.3vh 1.3vh 1.3vh 1.3vh; border-radius: 3vh; color: #fff;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.07) 42%, rgba(255,255,255,.03) 60%, rgba(255,255,255,.12) 100%),
+    rgba(16,18,24,.24);
+  border: 1px solid rgba(255,255,255,.34);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 0 rgba(255,255,255,.12), 0 2.4vh 6vh rgba(0,0,0,.32);
+  -webkit-backdrop-filter: blur(28px) saturate(175%) brightness(1.04); backdrop-filter: blur(28px) saturate(175%) brightness(1.04);
+  text-shadow: 0 .1vh .4vh rgba(0,0,0,.35); }
+#musica.visible { display: -webkit-flex; display: flex; }
+#musica-portada { width: 7.4vh; height: 7.4vh; border-radius: 1.4vh; object-fit: cover; -webkit-flex: none; flex: none;
+  box-shadow: 0 .6vh 1.6vh rgba(0,0,0,.35); }
+#musica-info { -webkit-flex: 1; flex: 1; min-width: 0; font-family: "InterVar", "Helvetica Neue", Arial, sans-serif; }
+#musica-titulo, #musica-artista { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#musica-titulo { font-size: 2.1vh; font-weight: 600; }
+#musica-artista { font-size: 1.8vh; opacity: .8; margin-top: .2vh; }
+#musica-linea { margin-top: 1vh; height: .45vh; border-radius: 1vh; background: rgba(255,255,255,.25); overflow: hidden; }
+#musica-avance { display: block; height: 100%; width: 0; background: #fff; border-radius: 1vh; transition: width 1s linear; }
+#musica-botones { display: -webkit-flex; display: flex; gap: .5vw; -webkit-flex: none; flex: none; padding-right: .4vw; }
+.boton-musica { width: 5vh; height: 5vh; border-radius: 50%; display: -webkit-flex; display: flex;
+  -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center;
+  transition: background .25s ease, transform .25s ease; }
+.boton-musica svg { width: 2.8vh; height: 2.8vh; fill: #fff; -webkit-filter: drop-shadow(0 .1vh .3vh rgba(0,0,0,.3)); filter: drop-shadow(0 .1vh .3vh rgba(0,0,0,.3)); }
+#musica-pausa svg { width: 3.4vh; height: 3.4vh; }
+.boton-musica.activo { background: rgba(255,255,255,.3); -webkit-transform: scale(1.12); transform: scale(1.12); }
+#musica.en-pausa #musica-portada { opacity: .7; }
+
+/* Con la barra de música, la cartela se hace un poco más angosta y el aviso sube */
+#app.vidrio #cartela { max-width: 29vw; }
+#app.galeria #musica { display: none !important; }
+#musica.visible ~ #aviso { bottom: 31vh; }
+
+#obra-credito:empty { display: none; }

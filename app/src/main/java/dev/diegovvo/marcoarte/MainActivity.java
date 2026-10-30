@@ -2,9 +2,15 @@ package dev.diegovvo.marcoarte;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.net.Uri;
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.Arrays;
+import org.json.JSONArray;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -39,10 +45,59 @@ public class MainActivity extends Activity {
         web.setFocusable(true);
         web.setFocusableInTouchMode(true);
 
+        web.addJavascriptInterface(new Puente(), "Android");
         setContentView(web);
         ocultarBarras();
+        new File(carpeta(), "fotos").mkdirs();
         web.loadUrl("file:///android_asset/index.html");
         web.requestFocus();
+    }
+
+    /** Carpeta propia de la app en el Fire TV, donde el instalador deja fotos y la llave de Spotify. */
+    private File carpeta() {
+        File f = getExternalFilesDir(null);
+        return f != null ? f : getFilesDir();
+    }
+
+    /** Lo que la página puede pedirle a la app. */
+    private class Puente {
+        @JavascriptInterface
+        public String fotos() {
+            JSONArray lista = new JSONArray();
+            File dir = new File(carpeta(), "fotos");
+            File[] archivos = dir.listFiles();
+            if (archivos == null) return "[]";
+            Arrays.sort(archivos);
+            for (File a : archivos) {
+                String n = a.getName().toLowerCase();
+                if (a.isFile() && (n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".png") || n.endsWith(".webp"))) {
+                    lista.put(a.getName() + "|" + Uri.fromFile(a).toString());
+                }
+            }
+            return lista.toString();
+        }
+
+        @JavascriptInterface
+        public String spotify() {
+            File f = new File(carpeta(), "spotify.json");
+            if (!f.isFile()) return "";
+            try {
+                FileInputStream in = new FileInputStream(f);
+                byte[] b = new byte[(int) f.length()];
+                int leidos = 0;
+                while (leidos < b.length) {
+                    int r = in.read(b, leidos, b.length - leidos);
+                    if (r < 0) break;
+                    leidos += r;
+                }
+                in.close();
+                String t = new String(b, 0, leidos, "UTF-8");
+                if (t.length() > 0 && t.charAt(0) == '\uFEFF') t = t.substring(1);
+                return t;
+            } catch (Exception e) {
+                return "";
+            }
+        }
     }
 
     private void ocultarBarras() {

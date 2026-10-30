@@ -20,8 +20,26 @@
                  COMMONS + encodeURIComponent('Sanzio 01.jpg') + '?width=1920'] }
   ];
 
+  // Fotos propias: el instalador las copia de la carpeta marco-arte\fotos de la compu.
+  // El nombre del archivo es el título ("Los Primos - Ferrari.jpg").
+  var FOTOS = [];
+  function cargarFotos() {
+    var lista = [];
+    try { lista = JSON.parse((window.Android && Android.fotos()) || '[]'); } catch (e) { lista = []; }
+    FOTOS = lista.map(function (par) {
+      var i = par.indexOf('|');
+      var nombre = par.slice(0, i).replace(/\.[^.]+$/, '').replace(/_/g, ' ');
+      var marca = /^los primos\s*[-–·]\s*/i.test(nombre);
+      return { id: 'foto-' + nombre, foto: true, src: par.slice(i + 1),
+        title: marca ? nombre.replace(/^los primos\s*[-–·]\s*/i, '') : nombre,
+        artist_title: marca ? 'Mezcal Los Primos' : 'Mis fotos', credito: marca ? 'Mis fotos' : '' };
+    });
+  }
+  cargarFotos();
+
   var COLECCIONES = [
     { id: 'favoritas', nombre: 'Mis favoritas', favoritas: true },
+    { id: 'fotos', nombre: 'Mis fotos', fotos: true },
     { id: 'impresionismo', nombre: 'Impresionismo', q: 'impressionism', pintura: true },
     { id: 'postimpresionismo', nombre: 'Van Gogh y postimpresionismo', q: 'post-impressionism', pintura: true },
     { id: 'monet', nombre: 'Monet', q: 'Claude Monet', pintura: true },
@@ -48,13 +66,14 @@
     { clave: 'coleccion', etiqueta: 'Colección', opciones: COLECCIONES.map(function (c) { return { v: c.id, t: c.nombre }; }) },
     { clave: 'intervalo', etiqueta: 'Cambiar obra cada', opciones: [
       { v: 1, t: '1 minuto' }, { v: 5, t: '5 minutos' }, { v: 15, t: '15 minutos' }, { v: 30, t: '30 minutos' },
-      { v: 60, t: '1 hora' }, { v: 180, t: '3 horas' }, { v: 1440, t: '1 día' }] },
+      { v: 60, t: '1 hora' }, { v: 180, t: '3 horas' }, { v: 1440, t: '1 día' }, { v: 0, t: 'Nunca (dejarla fija)' }] },
     { clave: 'ciudad', etiqueta: 'Clima de', opciones: CIUDADES.map(function (c, i) { return { v: i, t: c.nombre }; }) },
     { clave: 'estilo', etiqueta: 'Estilo', opciones: [{ v: 'vidrio', t: 'Pantalla completa' }, { v: 'galeria', t: 'Galería' }] },
     { clave: 'liquido', etiqueta: 'Vidrio líquido', barra: true, opciones: [0,10,20,30,40,50,60,70,80,90,100].map(function (n) { return { v: n, t: n + ' %' }; }) },
     { clave: 'posReloj', etiqueta: 'Lugar de la hora', opciones: [{ v: 'arriba', t: 'Arriba, como el iPhone' }, { v: 'centro', t: 'Centro de la pantalla' }] },
     { clave: 'ajuste', etiqueta: 'La obra', opciones: [{ v: 'llenar', t: 'Llenar la pantalla' }, { v: 'completa', t: 'Verla entera' }] },
     { clave: 'formato24', etiqueta: 'Hora', opciones: [{ v: false, t: '12 h (a. m. / p. m.)' }, { v: true, t: '24 h' }] },
+    { clave: 'misFotos', etiqueta: 'Mis fotos de vez en cuando', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
     { clave: 'mezclarFavoritas', etiqueta: 'Mis favoritas de vez en cuando', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
     { clave: 'horizontales', etiqueta: 'Solo obras horizontales', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
     { clave: 'brillo', etiqueta: 'Brillo', barra: true, opciones: [10,20,30,40,50,60,70,80,90,100].map(function (n) { return { v: n, t: n + ' %' }; }) },
@@ -62,7 +81,7 @@
     { clave: 'cerrar', etiqueta: 'Cerrar', boton: true }
   ];
 
-  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'vidrio', ajuste: 'llenar', liquido: 70, posReloj: 'arriba', formato24: false, horizontales: true, brillo: 100, brilloNoche: 50, mezclarFavoritas: true };
+  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'vidrio', ajuste: 'llenar', liquido: 70, posReloj: 'arriba', formato24: false, horizontales: true, brillo: 100, brilloNoche: 50, mezclarFavoritas: true, misFotos: true };
 
   var DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
   var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -158,8 +177,8 @@
 
   function rellenarPila() {
     var col = coleccionActual();
-    if (col.favoritas) {
-      var lista = barajar(FAVORITAS.slice());
+    if (col.favoritas || col.fotos) {
+      var lista = barajar((col.fotos && FOTOS.length ? FOTOS : FAVORITAS).slice());
       if (obraActual && lista[0].id === obraActual.id) lista.push(lista.shift());
       pila = pila.concat(lista);
       return Promise.resolve();
@@ -193,6 +212,7 @@
   }
 
   function candidatas(o) {
+    if (o.foto) return Promise.resolve([o.src]);
     if (!o.favorita) return Promise.resolve([urlImagen(o, 1686), urlImagen(o, 843)]);
     return pedirJson(urlWikipedia(o.wiki), 12000).then(function (r) {
       var urls = [];
@@ -265,7 +285,7 @@
       $('obra-artista').textContent = artista;
       $('obra-fecha').textContent = texto(o.date_display);
       $('obra-tecnica').textContent = traducirTecnica(o.medium_display);
-      $('obra-credito').textContent = o.credito ? '♥ ' + o.credito :
+      $('obra-credito').textContent = o.foto ? (o.credito || '') : o.credito ? '♥ ' + o.credito :
         'Art Institute of Chicago' + (o.main_reference_number ? ' · Núm. ' + o.main_reference_number : '');
       c.className = '';
     }, 700);
@@ -293,9 +313,14 @@
   function obtenerSiguiente() {
     obrasNuevas++;
     var col = coleccionActual();
-    if (!col.favoritas && ajustes.mezclarFavoritas && (obrasNuevas === 1 || obrasNuevas % 6 === 0)) {
-      var fav = FAVORITAS[turnoFavorita++ % FAVORITAS.length];
-      if (!obraActual || obraActual.id !== fav.id) return Promise.resolve(fav);
+    var especiales = [];
+    if (!col.favoritas && !col.fotos) {
+      if (ajustes.mezclarFavoritas) especiales = especiales.concat(FAVORITAS);
+      if (ajustes.misFotos) especiales = especiales.concat(FOTOS);
+    }
+    if (especiales.length && (obrasNuevas === 1 || obrasNuevas % 3 === 0)) {
+      var esp = especiales[turnoFavorita++ % especiales.length];
+      if (!obraActual || obraActual.id !== esp.id) return Promise.resolve(esp);
     }
     if (pila.length) return Promise.resolve(pila.shift());
     return rellenarPila().then(function () { return pila.shift(); });
@@ -352,7 +377,7 @@
 
   function programar(ms) {
     clearTimeout(temporizador);
-    if (pausado && !ms) return;
+    if ((pausado || !+ajustes.intervalo) && !ms) return;
     temporizador = setTimeout(siguiente, ms || ajustes.intervalo * 60 * 1000);
   }
 
@@ -401,6 +426,144 @@
     guardarAjustes();
     aplicarBrillo();
     avisar((clave === 'brilloNoche' ? 'Brillo de noche ' : 'Brillo ') + '<b>' + ajustes[clave] + ' %</b>', 1800);
+  }
+
+  // ---------------------------------------------------------------- Spotify (solo control)
+  // El instalador deja en la tele un spotify.json con el client_id y una llave
+  // (refresh_token) que se obtuvo iniciando sesión desde la compu.
+  var sp = { cfg: null, token: '', vence: 0, estado: null, ocupado: false, temporizador: null };
+
+  function guardaSp() {
+    try { localStorage.setItem('marcoArte.spotify', JSON.stringify({ semilla: sp.cfg.refresh_token, actual: sp.refresh })); } catch (e) {}
+  }
+
+  function iniciarSpotify() {
+    var t = '';
+    try { t = (window.Android && Android.spotify()) || ''; } catch (e) {}
+    if (!t) return;
+    try { sp.cfg = JSON.parse(t); } catch (e) { return; }
+    if (!sp.cfg.client_id || !sp.cfg.refresh_token) { sp.cfg = null; return; }
+    sp.refresh = sp.cfg.refresh_token;
+    try {
+      var g = JSON.parse(localStorage.getItem('marcoArte.spotify') || '{}');
+      if (g.semilla === sp.cfg.refresh_token && g.actual) sp.refresh = g.actual;
+    } catch (e) {}
+    leerReproduccion();
+    setInterval(leerReproduccion, 5000);
+    setInterval(pintarProgreso, 1000);
+  }
+
+  function spPedir(metodo, url, cuerpo, cabeceras) {
+    return new Promise(function (ok, falla) {
+      var x = new XMLHttpRequest();
+      x.open(metodo, url, true);
+      x.timeout = 12000;
+      for (var k in (cabeceras || {})) x.setRequestHeader(k, cabeceras[k]);
+      x.onload = function () { ok(x); };
+      x.onerror = function () { falla(new Error('red')); };
+      x.ontimeout = function () { falla(new Error('tiempo')); };
+      x.send(cuerpo || null);
+    });
+  }
+
+  function spToken(forzar) {
+    if (!forzar && sp.token && Date.now() < sp.vence) return Promise.resolve(sp.token);
+    var cuerpo = 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(sp.refresh) +
+      '&client_id=' + encodeURIComponent(sp.cfg.client_id);
+    return spPedir('POST', 'https://accounts.spotify.com/api/token', cuerpo,
+      { 'Content-Type': 'application/x-www-form-urlencoded' }).then(function (x) {
+      var r = {};
+      try { r = JSON.parse(x.responseText); } catch (e) {}
+      if (x.status !== 200 || !r.access_token) {
+        // Si la llave guardada ya no sirve, probamos con la que dejó el instalador.
+        if (sp.refresh !== sp.cfg.refresh_token) { sp.refresh = sp.cfg.refresh_token; return spToken(true); }
+        throw new Error('llave');
+      }
+      sp.token = r.access_token;
+      sp.vence = Date.now() + ((r.expires_in || 3600) - 120) * 1000;
+      if (r.refresh_token) { sp.refresh = r.refresh_token; guardaSp(); }
+      return sp.token;
+    });
+  }
+
+  function spApi(metodo, ruta) {
+    return spToken(false).then(function (tok) {
+      return spPedir(metodo, 'https://api.spotify.com/v1' + ruta, metodo === 'GET' ? null : '',
+        { 'Authorization': 'Bearer ' + tok });
+    }).then(function (x) {
+      if (x.status === 401) { sp.token = ''; }
+      return x;
+    });
+  }
+
+  function leerReproduccion() {
+    if (!sp.cfg || document.hidden) return;
+    spApi('GET', '/me/player').then(function (x) {
+      if (x.status === 204 || !x.responseText) { sp.estado = null; pintarMusica(); return; }
+      if (x.status !== 200) return;
+      var r = JSON.parse(x.responseText);
+      sp.estado = (r && r.item) ? { sonando: !!r.is_playing, item: r.item, progreso: r.progress_ms || 0, duracion: r.item.duration_ms || 1, leido: Date.now() } : null;
+      pintarMusica();
+    }).catch(function () {});
+  }
+
+  function pintarMusica() {
+    var barra = $('musica');
+    var e = sp.estado;
+    if (!e) { barra.className = ''; return; }
+    var it = e.item;
+    $('musica-titulo').textContent = it.name || '';
+    $('musica-artista').textContent = (it.artists || []).map(function (a) { return a.name; }).join(', ') ||
+      (it.show && it.show.name) || '';
+    var imgs = (it.album && it.album.images) || it.images || [];
+    var portada = imgs.length ? imgs[Math.min(1, imgs.length - 1)].url : '';
+    var img = $('musica-portada');
+    if (portada && img.getAttribute('src') !== portada) img.src = portada;
+    img.style.visibility = portada ? 'visible' : 'hidden';
+    $('musica-pausa').innerHTML = e.sonando ? ICONO_PAUSA : ICONO_PLAY;
+    barra.className = 'visible' + (e.sonando ? '' : ' en-pausa');
+    pintarProgreso();
+  }
+
+  function pintarProgreso() {
+    var e = sp.estado;
+    if (!e) return;
+    var p = e.progreso + (e.sonando ? Date.now() - e.leido : 0);
+    $('musica-avance').style.width = Math.min(100, p / e.duracion * 100).toFixed(2) + '%';
+  }
+
+  var ICONO_PAUSA = '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>';
+  var ICONO_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
+
+  function iluminar(id) {
+    var b = $(id);
+    b.className = 'boton-musica activo';
+    setTimeout(function () { b.className = 'boton-musica'; }, 350);
+  }
+
+  function musica(accion) {
+    if (!sp.cfg) return false;
+    if (sp.ocupado) return true;
+    var ruta, metodo = 'POST';
+    if (accion === 'pausa') {
+      var sonando = sp.estado && sp.estado.sonando;
+      ruta = sonando ? '/me/player/pause' : '/me/player/play';
+      metodo = 'PUT';
+      iluminar('musica-pausa');
+      if (sp.estado) { sp.estado.progreso += sonando ? Date.now() - sp.estado.leido : 0; sp.estado.leido = Date.now(); sp.estado.sonando = !sonando; pintarMusica(); }
+    } else if (accion === 'siguiente') { ruta = '/me/player/next'; iluminar('musica-siguiente'); }
+    else { ruta = '/me/player/previous'; iluminar('musica-anterior'); }
+    sp.ocupado = true;
+    spApi(metodo, ruta).then(function (x) {
+      sp.ocupado = false;
+      if (x.status === 404) avisar('Abre Spotify en tu cel o iPad y pon algo a sonar');
+      else if (x.status === 403) avisar('Spotify no dejó hacer eso en esta bocina');
+      setTimeout(leerReproduccion, 700);
+    }, function () {
+      sp.ocupado = false;
+      avisar('No se pudo hablar con Spotify');
+    });
+    return true;
   }
 
   // ---------------------------------------------------------------- Reloj de vidrio líquido
@@ -600,7 +763,7 @@
 
   var cambioColeccionT = null;
   function aplicarCambio(clave) {
-    if (clave === 'coleccion' || clave === 'horizontales') {
+    if (clave === 'coleccion' || clave === 'horizontales' || clave === 'misFotos' || clave === 'mezclarFavoritas') {
       // Esperamos a que deje de cambiar para no pedir obras de cada opción.
       clearTimeout(cambioColeccionT);
       cambioColeccionT = setTimeout(reiniciarColeccion, 1200);
@@ -659,7 +822,7 @@
     if (t === 'der') siguiente();
     else if (t === 'izq') anterior();
     else if (t === 'ok' || t === 'menu') abrirPanel();
-    else if (t === 'pausa') alternarPausa();
+    else if (t === 'pausa') window.alPausa();
     else if (t === 'arriba') cambiarBrillo(1);
     else if (t === 'abajo') cambiarBrillo(-1);
   });
@@ -671,14 +834,15 @@
   }
 
   function mostrarAyuda() {
-    avisar('<b>◀ ▶</b> cambiar obra &nbsp;·&nbsp; <b>▲ ▼</b> brillo &nbsp;·&nbsp; <b>OK</b> ajustes', 6000);
+    avisar('<b>◀ ▶</b> cambiar obra &nbsp;·&nbsp; <b>▲ ▼</b> brillo &nbsp;·&nbsp; <b>OK</b> ajustes' +
+      (sp.cfg ? ' &nbsp;·&nbsp; <b>⏪ ⏯ ⏩</b> música' : ''), 6000);
   }
 
   // Botones que la app de Android reenvía (Menú, Atrás, adelantar, regresar, pausa).
   window.alMenu = function () { if (panelAbierto) cerrarPanel(); else abrirPanel(); };
-  window.alSiguiente = function () { if (!panelAbierto) siguiente(); };
-  window.alAnterior = function () { if (!panelAbierto) anterior(); };
-  window.alPausa = alternarPausa;
+  window.alSiguiente = function () { if (!panelAbierto && !musica('siguiente')) siguiente(); };
+  window.alAnterior = function () { if (!panelAbierto && !musica('anterior')) anterior(); };
+  window.alPausa = function () { if (!musica('pausa')) alternarPausa(); };
   window.alAtras = function () {
     if (panelAbierto) { cerrarPanel(); return true; }
     return false;
@@ -695,6 +859,7 @@
   setInterval(actualizarReloj, 5000);
   actualizarClima();
   setInterval(actualizarClima, 20 * 60 * 1000);
+  iniciarSpotify();
   siguiente();
   setTimeout(mostrarAyuda, 2500);
 })();

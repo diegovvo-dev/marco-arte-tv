@@ -21,14 +21,28 @@ App para Fire TV que convierte la tele en un cuadro: pinturas famosas de dominio
 
 Para actualizarla, repite el paso 4 con la misma dirección: siempre baja la versión más nueva.
 
+## Instalar o actualizar desde la compu (recomendado)
+
+En PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/diegovvo-dev/marco-arte-tv/main/instalar.ps1 | iex
+```
+
+Instala la versión más nueva, copia las fotos de `marco-arte\fotos` (en tu compu, no se suben a internet) y, la primera vez, conecta Spotify.
+
+**Fotos propias:** pon tus imágenes en `C:\Users\<tú>\marco-arte\fotos` y vuelve a correr el instalador. El nombre del archivo es el título (`Los Primos - Ferrari.jpg` → "Ferrari · Mezcal Los Primos").
+
+**Spotify (Premium):** en tu app de developer.spotify.com agrega el Redirect URI `http://127.0.0.1:8888/callback`. Para volver a conectar, borra `marco-arte\spotify.json` y corre el instalador.
+
 ## Control remoto
 
 | Botón | Qué hace |
 |---|---|
 | ◀ ▶ | Obra anterior / siguiente |
 | OK o ☰ | Abre los ajustes |
-| ⏯ | Deja la obra fija o vuelve a rotar |
-| ▲ | Muestra la ayuda |
+| ⏪ ⏯ ⏩ | Con Spotify: canción anterior, pausa y siguiente. Sin Spotify: cambian la obra o la dejan fija |
+| ▲ ▼ | Brillo |
 | Atrás | Cierra los ajustes o sale de la app |
 
 En **Ajustes** se elige la colección (Impresionismo, Van Gogh y postimpresionismo, Monet, Paisajes, Retratos, Bodegones, Grabado japonés o todo mezclado), cada cuánto cambia la obra, la ciudad del clima, el estilo (Galería o Inmersivo), formato de hora, solo obras horizontales y atenuar de noche.
