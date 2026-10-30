@@ -502,7 +502,8 @@
       if (x.status === 204 || !x.responseText) { sp.estado = null; pintarMusica(); return; }
       if (x.status !== 200) return;
       var r = JSON.parse(x.responseText);
-      sp.estado = (r && r.item) ? { sonando: !!r.is_playing, item: r.item, progreso: r.progress_ms || 0, duracion: r.item.duration_ms || 1, leido: Date.now() } : null;
+      sp.estado = (r && r.item) ? { sonando: !!r.is_playing, item: r.item, progreso: r.progress_ms || 0, duracion: r.item.duration_ms || 1, leido: Date.now(),
+        aparato: r.device || {}, prohibido: (r.actions && r.actions.disallows) || {} } : null;
       pintarMusica();
     }).catch(function () {});
   }
@@ -549,27 +550,81 @@
     setTimeout(function () { b.className = 'boton-musica'; }, 350);
   }
 
+  function motivoSpotify(x) {
+    try {
+      var e = JSON.parse(x.responseText).error || {};
+      return (e.reason ? e.reason + ' · ' : '') + (e.message || ('error ' + x.status));
+    } catch (err) { return 'error ' + x.status; }
+  }
+
+  // Sonos: Spotify no deja que otras apps controlen las Sonos, así que la app
+  // le habla directo a la bocina por el Wi-Fi (lo hace la parte de Android).
+  var esperaSonos = null;
+  window.alSonos = function (r) { if (esperaSonos) { var f = esperaSonos; esperaSonos = null; f(r); } };
+  function ordenSonos(accion) {
+    if (!(window.Android && Android.sonos)) return Promise.resolve('sin-sonos');
+    return new Promise(function (ok) {
+      esperaSonos = ok;
+      setTimeout(function () { window.alSonos('tiempo'); }, 15000);
+      Android.sonos(accion === 'pausa' ? 'alternar' : accion);
+    });
+  }
+  function esSonos(aparato) {
+    aparato = aparato || {};
+    return !!aparato.is_restricted || /sonos/i.test((aparato.name || '') + ' ' + (aparato.type || ''));
+  }
+
   function musica(accion) {
     if (!sp.cfg) return false;
     if (sp.ocupado) return true;
-    var ruta, metodo = 'POST';
-    if (accion === 'pausa') {
-      var sonando = sp.estado && sp.estado.sonando;
-      ruta = sonando ? '/me/player/pause' : '/me/player/play';
-      metodo = 'PUT';
-      iluminar('musica-pausa');
-      if (sp.estado) { sp.estado.progreso += sonando ? Date.now() - sp.estado.leido : 0; sp.estado.leido = Date.now(); sp.estado.sonando = !sonando; pintarMusica(); }
-    } else if (accion === 'siguiente') { ruta = '/me/player/next'; iluminar('musica-siguiente'); }
-    else { ruta = '/me/player/previous'; iluminar('musica-anterior'); }
+    var boton = accion === 'pausa' ? 'musica-pausa' : accion === 'siguiente' ? 'musica-siguiente' : 'musica-anterior';
+    iluminar(boton);
     sp.ocupado = true;
-    spApi(metodo, ruta).then(function (x) {
+
+    function terminar(bien, nuevoEstado) {
       sp.ocupado = false;
-      if (x.status === 404) avisar('Abre Spotify en tu cel o iPad y pon algo a sonar');
-      else if (x.status === 403) avisar('Spotify no dejó hacer eso en esta bocina');
-      setTimeout(leerReproduccion, 700);
-    }, function () {
-      sp.ocupado = false;
-      avisar('No se pudo hablar con Spotify');
+      if (bien && accion === 'pausa' && sp.estado && nuevoEstado !== undefined) {
+        sp.estado.progreso += sp.estado.sonando ? Date.now() - sp.estado.leido : 0;
+        sp.estado.leido = Date.now();
+        sp.estado.sonando = nuevoEstado;
+        pintarMusica();
+      }
+      setTimeout(leerReproduccion, 900);
+      setTimeout(leerReproduccion, 2500);
+    }
+
+    function porSonos(motivoSpotifyTexto) {
+      return ordenSonos(accion).then(function (r) {
+        if (r === 'pausado') return terminar(true, false);
+        if (r === 'sonando') return terminar(true, true);
+        if (r === 'ok') return terminar(true);
+        terminar(false);
+        if (r === 'sin-sonos') avisar('No encontré tu Sonos en el Wi-Fi. Revisa que la tele y la bocina estén en la misma red.', 7000);
+        else if (r === 'nada') avisar('Tu Sonos no está reproduciendo nada ahorita', 4000);
+        else avisar('La bocina no respondió' + (motivoSpotifyTexto ? ' (' + motivoSpotifyTexto + ')' : ''), 6000);
+      });
+    }
+
+    var ruta, metodo = accion === 'pausa' ? 'PUT' : 'POST';
+    spApi('GET', '/me/player').then(function (x) {
+      var r = null;
+      if (x.status === 200) { try { r = JSON.parse(x.responseText); } catch (e) {} }
+      if (r && r.item) {
+        sp.estado = { sonando: !!r.is_playing, item: r.item, progreso: r.progress_ms || 0, duracion: r.item.duration_ms || 1, leido: Date.now(),
+          aparato: r.device || {}, prohibido: (r.actions && r.actions.disallows) || {} };
+      }
+      // Sonos: directo a la bocina.
+      if (sp.estado && esSonos(sp.estado.aparato)) return porSonos('');
+      var sonando = !!(sp.estado && sp.estado.sonando);
+      ruta = accion === 'pausa' ? (sonando ? '/me/player/pause' : '/me/player/play') :
+        accion === 'siguiente' ? '/me/player/next' : '/me/player/previous';
+      return spApi(metodo, ruta).then(function (y) {
+        if (y.status >= 200 && y.status < 300) return terminar(true, accion === 'pausa' ? !sonando : undefined);
+        // Si Spotify no deja, probamos directo con la Sonos.
+        return porSonos(motivoSpotify(y));
+      });
+    }).catch(function () {
+      porSonos('');
     });
     return true;
   }

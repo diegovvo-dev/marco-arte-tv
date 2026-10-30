@@ -277,3 +277,5 @@ body { font-family: var(--texto); -webkit-font-smoothing: antialiased; cursor: n
 
 /* Spotify pegado abajo a la derecha, alineado con la cartela de la izquierda */
 #musica { left: auto; right: 3.2vw; bottom: 5vh; -webkit-transform: none; transform: none; }
+
+#aviso { white-space: normal; max-width: 70vw; text-align: center; }

@@ -24,6 +24,7 @@ import android.webkit.WebViewClient;
 public class MainActivity extends Activity {
 
     private WebView web;
+    private Sonos sonos;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +46,7 @@ public class MainActivity extends Activity {
         web.setFocusable(true);
         web.setFocusableInTouchMode(true);
 
+        sonos = new Sonos(this);
         web.addJavascriptInterface(new Puente(), "Android");
         setContentView(web);
         ocultarBarras();
@@ -75,6 +77,23 @@ public class MainActivity extends Activity {
                 }
             }
             return lista.toString();
+        }
+
+        /** Manda una orden a la bocina Sonos y avisa a la página con window.alSonos(resultado). */
+        @JavascriptInterface
+        public void sonos(final String accion) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    final String r = sonos.ejecutar(accion);
+                    web.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            web.evaluateJavascript("window.alSonos && alSonos('" + r + "')", null);
+                        }
+                    });
+                }
+            }).start();
         }
 
         @JavascriptInterface
