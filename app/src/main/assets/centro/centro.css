@@ -1,268 +1,167 @@
-/* Centro de control del cuarto.
-   Concepto: cabina de noche. Fondo azul tinta con luces cálidas que se mueven muy lento;
-   la información vive en tarjetas de vidrio, con la hora enorme arriba como en el iPhone.
-   El lienzo mide 1080 × 1920 y se escala (y gira) para la pantalla vertical. */
+/* Centro de control del cuarto — limpio y minimalista.
+   Lienzo vertical de 1080 × 1920 (se escala y gira para la Atvio parada).
+   Fondo liso casi negro; tarjetas de vidrio muy sutiles con un solo estilo;
+   un solo acento (ámbar) para lo importante. Modo noche: todo cálido y tenue. */
 @font-face { font-family: "InterVar"; src: url("../fonts/Inter-Variable.woff2") format("woff2"); font-weight: 100 900; }
-@font-face { font-family: "Cormorant"; src: url("../fonts/CormorantGaramond-MediumItalic.ttf"); font-weight: 500; font-style: italic; }
 
 :root {
-  --tinta: #0b1020;
-  --tinta-2: #141a33;
-  --texto: #f4f2ee;
-  --suave: rgba(244,242,238,.62);
-  --linea: rgba(255,255,255,.14);
-  --ambar: #f2b663;
-  --menta: #7fe0c0;
-  --coral: #ff8a72;
-  --cielo: #8fb8ff;
-  --vidrio: rgba(255,255,255,.075);
+  --fondo: #030918;
+  --texto: #eef4ff;
+  --suave: rgba(214,228,255,.68);
+  --tenue: rgba(190,210,255,.44);
+  --linea: rgba(120,165,255,.14);
+  --panel: rgba(70,120,255,.085);
+  --borde: rgba(120,170,255,.24);
+  --acento: #43d3ff;
+  --alerta: #ff7a93;
+  --ok: #43d3ff;
   --letra: "InterVar", "Helvetica Neue", Arial, sans-serif;
-  --acento: "Cormorant", Georgia, serif;
+  --radio: 28px;
+  --hueco: 20px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #05070f; color: var(--texto); }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; color: var(--texto); }
 body { font-family: var(--letra); -webkit-font-smoothing: antialiased; cursor: none; }
 
 #lienzo { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden;
-  -webkit-transform-origin: 0 0; transform-origin: 0 0;
-  background: linear-gradient(170deg, #121a38 0%, var(--tinta) 45%, #070a14 100%);
+  -webkit-transform-origin: 0 0; transform-origin: 0 0; color: var(--texto);
+  background:
+    linear-gradient(rgba(120,170,255,.045) 1px, transparent 1px) 0 0 / 54px 54px,
+    linear-gradient(90deg, rgba(120,170,255,.045) 1px, transparent 1px) 0 0 / 54px 54px,
+    radial-gradient(70% 34% at 50% 6%, rgba(40,110,255,.55) 0%, rgba(40,110,255,0) 100%),
+    radial-gradient(60% 40% at 100% 70%, rgba(0,190,255,.22) 0%, rgba(0,190,255,0) 100%),
+    radial-gradient(70% 40% at 0% 100%, rgba(70,60,255,.22) 0%, rgba(70,60,255,0) 100%),
+    linear-gradient(180deg, #071a4a 0%, var(--fondo) 55%, #020612 100%);
   display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
-  padding: 72px 64px 40px; gap: 24px; font-variant-numeric: tabular-nums; }
+  padding: 88px 64px 48px; gap: var(--hueco); font-variant-numeric: tabular-nums; }
+#lienzo > * { -webkit-flex-shrink: 0; flex-shrink: 0; position: relative; z-index: 1; }
 
-/* Luces de fondo: tres manchas difusas que se mueven lento */
-#fondo { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; z-index: 0; }
-.luz { position: absolute; border-radius: 50%; -webkit-filter: blur(90px); filter: blur(90px); opacity: .55; }
-.luz-a { width: 720px; height: 720px; left: -220px; top: -160px; background: radial-gradient(circle, #3b4bb0, transparent 70%);
-  -webkit-animation: flotar 38s ease-in-out infinite alternate; animation: flotar 38s ease-in-out infinite alternate; }
-.luz-b { width: 640px; height: 640px; right: -260px; top: 520px; background: radial-gradient(circle, #b8693a, transparent 70%); opacity: .38;
-  -webkit-animation: flotar 46s ease-in-out infinite alternate-reverse; animation: flotar 46s ease-in-out infinite alternate-reverse; }
-.luz-c { width: 760px; height: 760px; left: -120px; bottom: -320px; background: radial-gradient(circle, #1f6f78, transparent 70%); opacity: .42;
-  -webkit-animation: flotar 52s ease-in-out infinite alternate; animation: flotar 52s ease-in-out infinite alternate; }
-@-webkit-keyframes flotar { from { -webkit-transform: translate(0,0); } to { -webkit-transform: translate(120px, 80px); } }
-@keyframes flotar { from { transform: translate(0,0); } to { transform: translate(120px, 80px); } }
-#lienzo > *:not(#fondo) { position: relative; z-index: 1; }
-
-/* ---------- Cabeza: hora y clima ---------- */
-#cabeza { text-align: center; padding-bottom: 8px; }
-#fecha { font-size: 34px; font-weight: 600; letter-spacing: .01em; color: var(--texto); opacity: .92; }
-#hora { font-size: 248px; font-weight: 600; letter-spacing: -.035em; line-height: .95; margin-top: 4px;
-  background: linear-gradient(180deg, #ffffff 0%, #e9eefc 55%, #c9d3f2 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
-  text-shadow: none; }
-#hora-ampm { font-size: 34px; font-weight: 600; letter-spacing: .06em; margin-left: 12px; vertical-align: 26px;
-  -webkit-text-fill-color: var(--suave); }
-#clima-ahora { margin-top: 10px; font-size: 30px; font-weight: 500; color: var(--texto);
-  display: -webkit-inline-flex; display: inline-flex; -webkit-align-items: center; align-items: center; gap: 14px; }
-#clima-temp { font-weight: 700; }
-#clima-texto { color: var(--suave); }
-#horas { list-style: none; margin-top: 26px; display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between;
-  padding: 18px 26px; border-radius: 28px; background: var(--vidrio); border: 1px solid var(--linea);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.18); }
-#horas li { width: 120px; text-align: center; font-size: 24px; color: var(--suave); }
-#horas li b { display: block; font-size: 28px; font-weight: 600; color: var(--texto); margin-top: 6px; }
-#horas li .icono { margin: 8px auto 0; width: 40px; height: 40px; }
-#horas li.lluvia .gota { display: block; font-size: 20px; color: var(--cielo); margin-top: 2px; }
-
-/* ---------- Tarjetas de vidrio ---------- */
-.fila { display: -webkit-flex; display: flex; gap: 24px; }
-.fila > .tarjeta { -webkit-flex: 1; flex: 1; min-width: 0; }
-.tarjeta { position: relative; padding: 26px 30px; border-radius: 32px; overflow: hidden;
-  background: linear-gradient(150deg, rgba(255,255,255,.12), rgba(255,255,255,.04) 55%, rgba(255,255,255,.07));
-  border: 1px solid var(--linea);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 18px 50px rgba(0,0,0,.28); }
-.tarjeta h2 { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; gap: 12px;
-  font-size: 22px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--suave); margin-bottom: 14px; }
-.tarjeta h2 .icono { width: 28px; height: 28px; }
-.tarjeta h3 { font-size: 20px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--suave); margin: 18px 0 8px; }
-.derecha { margin-left: auto; letter-spacing: .02em; text-transform: none; font-weight: 500; }
-.tenue { color: var(--suave); }
-.grande { font-size: 64px; font-weight: 600; letter-spacing: -.02em; line-height: 1.05; }
-.grande small { font-size: 28px; font-weight: 500; color: var(--suave); letter-spacing: 0; }
-#t-alarma p, #t-cuenta p { font-size: 24px; margin-top: 6px; }
-#t-alarma .grande { color: var(--ambar); }
-
-.lista { list-style: none; }
-.lista li { display: -webkit-flex; display: flex; -webkit-align-items: flex-start; align-items: flex-start; gap: 18px; padding: 12px 0;
-  border-top: 1px solid rgba(255,255,255,.08); font-size: 28px; line-height: 1.25; }
-.lista li:first-child { border-top: 0; }
-.lista .cuando { width: 150px; -webkit-flex: none; flex: none; color: var(--suave); font-size: 24px; padding-top: 3px; }
-.lista .que { min-width: 0; -webkit-flex: 1; flex: 1; }
-.lista .que small { display: block; font-size: 21px; color: var(--suave); margin-top: 3px; }
-.lista .barra { width: 6px; -webkit-align-self: stretch; align-self: stretch; border-radius: 3px; -webkit-flex: none; flex: none; }
-.lista li.ahora { background: rgba(242,182,99,.12); border-radius: 18px; padding: 12px 14px; margin: 2px -14px; border-top-color: transparent; }
-.lista li.ahora .cuando { color: var(--ambar); font-weight: 600; }
-.lista li.pasado { opacity: .42; }
-.lista.compacta li { font-size: 24px; padding: 8px 0; }
-.lista.compacta .cuando { font-size: 21px; }
-.pildora { display: inline-block; font-size: 18px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
-  padding: 3px 10px; border-radius: 99px; margin-left: 10px; vertical-align: 4px; }
-.pildora.ahora { background: var(--ambar); color: #241606; }
-.pildora.vence { background: rgba(255,138,114,.2); color: var(--coral); }
-
-/* Pendientes: círculo como en Recordatorios */
-.circulo { width: 30px; height: 30px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.45); -webkit-flex: none; flex: none; margin-top: 1px; }
-.circulo.urgente { border-color: var(--coral); }
-
-/* Con Claude */
-#claude li .marca { width: 34px; height: 34px; -webkit-flex: none; flex: none; border-radius: 10px; margin-top: 2px;
-  background: radial-gradient(circle at 50% 50%, #e9895f 0 30%, transparent 31%), rgba(233,137,95,.16); }
-#claude .que b { font-weight: 600; }
-
-/* Música */
-#t-musica { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; gap: 26px; padding: 22px 26px; }
-#m-portada { width: 118px; height: 118px; border-radius: 20px; object-fit: cover; box-shadow: 0 10px 26px rgba(0,0,0,.4); -webkit-flex: none; flex: none; }
-#m-info { -webkit-flex: 1; flex: 1; min-width: 0; }
-.etiqueta { font-size: 20px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--menta);
-  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; gap: 10px; }
-.ondas { display: -webkit-inline-flex; display: inline-flex; -webkit-align-items: flex-end; align-items: flex-end; gap: 3px; height: 18px; }
-.ondas i { display: block; width: 4px; background: var(--menta); border-radius: 2px; height: 40%;
-  -webkit-animation: onda 1.1s ease-in-out infinite; animation: onda 1.1s ease-in-out infinite; }
-.ondas i:nth-child(2) { -webkit-animation-delay: -.4s; animation-delay: -.4s; }
-.ondas i:nth-child(3) { -webkit-animation-delay: -.8s; animation-delay: -.8s; }
-@-webkit-keyframes onda { 0%,100% { height: 30%; } 50% { height: 100%; } }
-@keyframes onda { 0%,100% { height: 30%; } 50% { height: 100%; } }
-#t-musica.pausa .ondas i { -webkit-animation: none; animation: none; height: 30%; }
-#m-titulo { font-size: 32px; font-weight: 600; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#m-artista { font-size: 24px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#m-linea { height: 6px; border-radius: 3px; background: rgba(255,255,255,.18); margin-top: 14px; overflow: hidden; }
-#m-avance { display: block; height: 100%; width: 0; background: #fff; border-radius: 3px; }
-
-/* Mi cuarto */
-#aparatos { list-style: none; display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; gap: 14px; }
-#aparatos li { width: calc(50% - 7px); display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; gap: 16px;
-  padding: 16px 18px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); }
-#aparatos .icono { width: 40px; height: 40px; -webkit-flex: none; flex: none; opacity: .9; }
-#aparatos .nombre { font-size: 24px; font-weight: 600; }
-#aparatos .estado { font-size: 20px; color: var(--suave); margin-top: 2px; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; gap: 8px; }
-#aparatos .punto { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.3); -webkit-flex: none; flex: none; }
-#aparatos li.on .punto { background: var(--menta); box-shadow: 0 0 10px var(--menta); }
-#aparatos li.off { opacity: .55; }
-#aparatos .bateria { display: inline-block; width: 34px; height: 16px; border: 2px solid rgba(255,255,255,.6); border-radius: 4px; position: relative; padding: 1px; }
-#aparatos .bateria i { display: block; height: 100%; border-radius: 1px; background: var(--menta); }
-
-#pie { margin-top: auto; display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between;
-  font-size: 20px; color: var(--suave); padding: 0 8px; }
-
-/* Íconos (SVG en línea, color del texto) */
-.icono { display: inline-block; width: 32px; height: 32px; -webkit-flex: none; flex: none; }
-.icono svg { width: 100%; height: 100%; display: block; }
-
-/* ---------- Ajustes para que todo quepa en 1920 px ---------- */
-#lienzo { gap: 18px; padding: 64px 56px 34px; }
-#lienzo > * { -webkit-flex-shrink: 0; flex-shrink: 0; }
-#hora { font-size: 206px; }
-#fecha { font-size: 32px; }
-#clima-ahora { font-size: 28px; margin-top: 6px; }
-#clima-ahora .icono { width: 30px; height: 30px; }
-#horas { margin-top: 20px; padding: 14px 18px; }
-#horas li { width: 140px; white-space: nowrap; font-size: 22px; }
-#horas li .icono { width: 36px; height: 36px; margin-top: 6px; }
-#horas li b { font-size: 26px; margin-top: 4px; }
-.tarjeta { padding: 22px 26px; border-radius: 30px; }
-.tarjeta h2 { font-size: 20px; margin-bottom: 8px; }
-.grande { font-size: 58px; }
-.lista li { font-size: 26px; padding: 9px 0; gap: 16px; }
-.lista .cuando { width: 112px; font-size: 22px; }
-.lista .que small { font-size: 20px; }
-.lista li.ahora { padding: 9px 12px; margin: 2px -12px; }
-.tarjeta h3 { margin: 10px 0 2px; font-size: 18px; }
-.lista.compacta li { font-size: 22px; padding: 5px 0; }
-.lista.compacta .cuando { width: 150px; font-size: 20px; }
-/* Pendientes y Claude lado a lado */
-#t-pendientes .lista li, #t-claude .lista li { font-size: 23px; gap: 12px; padding: 9px 0; }
-.circulo { width: 26px; height: 26px; }
-#claude li .marca { width: 26px; height: 26px; border-radius: 8px; }
-/* Música más compacta */
-#t-musica { padding: 18px 22px; gap: 22px; }
-#m-portada { width: 100px; height: 100px; border-radius: 18px; }
-#m-titulo { font-size: 30px; margin-top: 4px; }
-#m-artista { font-size: 22px; }
-#m-linea { margin-top: 10px; }
-/* Aparatos en tres columnas */
-#aparatos { gap: 12px; }
-#aparatos li { width: calc((100% - 24px) / 3); -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: flex-start; align-items: flex-start;
-  gap: 8px; padding: 14px 16px; border-radius: 20px; }
-#aparatos .icono { width: 34px; height: 34px; }
-#aparatos .nombre { font-size: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-#aparatos .estado { font-size: 18px; -webkit-flex-wrap: wrap; flex-wrap: wrap; }
-#aparatos li > div { min-width: 0; width: 100%; }
-#pie { font-size: 19px; }
-
-/* Segunda pasada de ajuste de alturas */
-#aparatos li { -webkit-flex-direction: row; flex-direction: row; -webkit-align-items: center; align-items: center; gap: 12px; padding: 12px 14px; }
-#aparatos .icono { width: 30px; height: 30px; }
-#aparatos .nombre { font-size: 20px; }
-#aparatos .estado { font-size: 17px; }
-#aparatos .bateria { width: 28px; height: 14px; }
-.tarjeta h3 { display: none; }
-#eventos-manana { margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,.14); }
-#horas { padding: 12px 18px; }
-#horas li .icono { width: 32px; height: 32px; margin-top: 4px; }
-#t-musica { padding: 16px 22px; }
-#m-portada { width: 92px; height: 92px; }
-
-.lista.compacta li { padding: 3px 0; }
-.lista.compacta .cuando { width: 170px; }
-#cabeza { padding-bottom: 0; }
-#horas { margin-top: 16px; }
-#lienzo { gap: 16px; padding-top: 58px; }
-#hora { font-size: 192px; }
-.grande { font-size: 52px; }
-#t-hoy .lista li { padding: 7px 0; }
-#t-hoy .lista li.ahora { padding: 7px 12px; }
-#aparatos .estado { -webkit-flex-wrap: nowrap; flex-wrap: nowrap; white-space: nowrap; }
-#aparatos .estado .texto { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-
-/* =====================================================================
-   Vidrio líquido en todo: fondo con obra o foto, números y tarjetas de vidrio
-   ===================================================================== */
-#fondo .capa { position: absolute; top: -3%; left: -3%; right: -3%; bottom: -3%; background-size: cover; background-position: 50% 50%;
-  opacity: 0; transition: opacity 2.4s ease; -webkit-transform: scale(1.04); transform: scale(1.04); }
-#fondo .capa.visible { opacity: 1; }
-#fondo .velo { position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(180deg, rgba(5,8,18,.18) 0%, rgba(5,8,18,.10) 30%, rgba(5,8,18,.28) 100%); }
-
-/* Hora: números de vidrio (se dibujan en canvas, igual que en la Sharp) */
-#hora { position: relative; display: inline-block; margin: 6px auto 0; font-size: 0; line-height: 0; background: none; }
+/* ---------- Hora ---------- */
+#cabeza { text-align: center; padding-bottom: 28px; }
+#fecha { font-size: 30px; font-weight: 500; color: var(--suave); }
+#hora { position: relative; display: inline-block; margin-top: 8px; font-size: 0; line-height: 0; }
+#hora, #hora canvas { font-variant-numeric: normal; letter-spacing: 0; }
 #hora canvas, #hora-vidrio { display: block; }
 #hora-sombra, #hora-vidrio { position: absolute; left: 0; top: 0; }
 #hora-texto { position: relative; }
 #hora-vidrio { -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
-  -webkit-backdrop-filter: blur(var(--blur, 14px)) saturate(1.9) brightness(var(--brillo, 1.3));
-  backdrop-filter: blur(var(--blur, 14px)) saturate(1.9) brightness(var(--brillo, 1.3));
-  background: rgba(255,255,255,var(--tinte, .14)); }
-#fecha, #clima-ahora { text-shadow: 0 1px 4px rgba(0,0,0,.35), 0 2px 18px rgba(0,0,0,.3); }
-#clima-texto { color: rgba(255,255,255,.88); }
+  -webkit-backdrop-filter: blur(var(--blur, 14px)) saturate(1.6) brightness(var(--brillo, 1.3));
+  backdrop-filter: blur(var(--blur, 14px)) saturate(1.6) brightness(var(--brillo, 1.3));
+  background: linear-gradient(180deg, rgba(235,245,255,.40), rgba(150,200,255,.14) 70%, rgba(120,200,255,.26)); }
+#clima-ahora { margin-top: 12px; font-size: 28px; font-weight: 500; color: var(--suave);
+  display: -webkit-inline-flex; display: inline-flex; -webkit-align-items: center; align-items: center; gap: 12px; }
+#clima-ahora .icono { color: var(--texto); }
+#clima-temp { color: var(--texto); font-weight: 600; }
+#horas { list-style: none; margin-top: 34px; display: -webkit-flex; display: flex; }
+#horas li { -webkit-flex: 1; flex: 1; text-align: center; font-size: 20px; color: var(--tenue); }
+#horas li + li { border-left: 1px solid var(--linea); }
+#horas li .icono { display: block; margin: 10px auto 8px; width: 30px; height: 30px; color: var(--suave); }
+#horas li b { font-size: 26px; font-weight: 500; color: var(--texto); }
 
-/* Tarjetas: vidrio esmerilado con borde de luz y brillo arriba */
-.tarjeta, #horas {
-  background:
-    linear-gradient(150deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,.06) 42%, rgba(255,255,255,.03) 60%, rgba(255,255,255,.11) 100%),
-    rgba(12,14,24,.30);
-  border: 1px solid rgba(255,255,255,.30);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.55),
-    inset 1px 0 0 rgba(255,255,255,.14),
-    inset 0 -1px 0 rgba(255,255,255,.10),
-    inset 0 0 40px rgba(255,255,255,.04),
-    0 20px 50px rgba(0,0,0,.30), 0 4px 12px rgba(0,0,0,.16);
-  -webkit-backdrop-filter: blur(30px) saturate(180%) brightness(1.02);
-  backdrop-filter: blur(30px) saturate(180%) brightness(1.02);
-  text-shadow: 0 1px 3px rgba(0,0,0,.25);
-}
-.tarjeta::before, #horas::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 46%; pointer-events: none; border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0)); }
-#horas { position: relative; overflow: hidden; }
-#horas > *, .tarjeta > * { position: relative; }
-.tenue, .tarjeta h2, #horas li { color: rgba(255,255,255,.74); }
-#aparatos li { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); }
-.lista li { border-top-color: rgba(255,255,255,.12); }
-.lista li.ahora { background: rgba(242,182,99,.20); }
-#m-linea { background: rgba(255,255,255,.25); }
-#pie { color: rgba(255,255,255,.8); text-shadow: 0 1px 4px rgba(0,0,0,.5); }
+/* ---------- Tarjetas: un solo estilo ---------- */
+.fila { display: -webkit-flex; display: flex; gap: var(--hueco); }
+.fila > .tarjeta { -webkit-flex: 1; flex: 1; min-width: 0; }
+.tarjeta { position: relative; padding: 26px 28px; border-radius: var(--radio); overflow: hidden;
+  background: linear-gradient(160deg, rgba(120,170,255,.16), var(--panel) 45%, rgba(40,90,220,.06));
+  border: 1px solid var(--borde);
+  box-shadow: inset 0 1px 0 rgba(190,215,255,.28), 0 20px 50px rgba(0,8,40,.45), 0 0 0 1px rgba(0,0,0,.15);
+  -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); }
+.tarjeta::before { content: ""; position: absolute; left: 28px; right: 28px; top: 0; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(67,211,255,.7), transparent); }
+.tarjeta h2 { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; gap: 10px;
+  font-size: 18px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--tenue); margin-bottom: 14px; }
+.tarjeta h2 .icono { width: 22px; height: 22px; }
+.derecha { margin-left: auto; letter-spacing: .02em; text-transform: none; font-weight: 500; font-size: 20px; }
+.grande { font-size: 54px; font-weight: 600; letter-spacing: -.02em; line-height: 1.05; }
+.grande small { font-size: 24px; font-weight: 500; color: var(--suave); letter-spacing: 0; }
+.nota { font-size: 22px; color: var(--suave); margin-top: 8px; }
+#alarma-hora { color: var(--acento); text-shadow: 0 0 24px rgba(67,211,255,.35); }
 
-/* Si el aparato no sabe desenfocar, el vidrio se vuelve un poco más oscuro para que se lea */
-@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .tarjeta, #horas { background: rgba(14,16,26,.62); }
-}
-#hora, #hora canvas { font-variant-numeric: normal; letter-spacing: 0; font-feature-settings: normal; }
+/* Listas */
+.lista { list-style: none; }
+.lista li { display: -webkit-flex; display: flex; -webkit-align-items: baseline; align-items: baseline; gap: 18px; padding: 12px 0;
+  border-top: 1px solid var(--linea); font-size: 25px; line-height: 1.3; }
+.lista li:first-child { border-top: 0; padding-top: 2px; }
+.lista .cuando { width: 96px; -webkit-flex: none; flex: none; font-size: 22px; color: var(--suave); }
+.lista .que { min-width: 0; -webkit-flex: 1; flex: 1; }
+.lista .que small { display: block; font-size: 19px; color: var(--tenue); margin-top: 2px; }
+.lista li.pasado { opacity: .38; }
+.lista li.ahora .cuando, .lista li.ahora .que { color: var(--acento); }
+.pildora { font-size: 15px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #021626; background: var(--acento); box-shadow: 0 0 16px rgba(67,211,255,.6);
+  padding: 3px 9px; border-radius: 99px; margin-left: 10px; vertical-align: 3px; }
+.lista.manana li { font-size: 21px; padding: 8px 0; color: var(--suave); }
+.lista.manana .cuando { color: var(--tenue); font-size: 19px; width: 160px; }
+#eventos-manana { margin-top: 6px; border-top: 1px solid var(--linea); }
+#eventos-manana li:first-child { border-top: 0; padding-top: 12px; }
+
+.punto-lista { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--tenue); -webkit-flex: none; flex: none; -webkit-align-self: center; align-self: center; }
+.punto-lista.urgente { border-color: var(--alerta); }
+.vence { display: block; font-size: 19px; color: var(--tenue); margin-top: 2px; }
+.vence.urgente { color: var(--alerta); }
+#t-pendientes .lista li, #t-claude .lista li { font-size: 22px; gap: 14px; padding: 11px 0; }
+#t-pendientes .lista li { -webkit-align-items: flex-start; align-items: flex-start; }
+#t-pendientes .punto-lista { -webkit-align-self: flex-start; align-self: flex-start; margin-top: 5px; }
+#t-claude .lista li { display: block; }
+#t-claude .lista li small { display: block; font-size: 19px; color: var(--tenue); margin-top: 2px; }
+
+/* Música */
+#t-musica { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; gap: 24px; padding: 20px 24px; }
+#m-portada { width: 84px; height: 84px; border-radius: 14px; object-fit: cover; -webkit-flex: none; flex: none; background: rgba(255,255,255,.06); }
+#m-info { -webkit-flex: 1; flex: 1; min-width: 0; }
+#m-lugar { font-size: 16px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--tenue); }
+#m-titulo { font-size: 27px; font-weight: 600; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#m-artista { font-size: 21px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#m-linea { height: 4px; border-radius: 2px; background: rgba(255,255,255,.12); margin-top: 12px; overflow: hidden; }
+#m-avance { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #2f7bff, var(--acento)); border-radius: 2px; box-shadow: 0 0 10px rgba(67,211,255,.6); }
+
+/* Mi cuarto */
+#aparatos { list-style: none; display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; row-gap: 20px; }
+#aparatos li { width: 33.333%; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; gap: 14px; min-width: 0; padding-right: 10px; }
+#aparatos .icono { width: 30px; height: 30px; color: var(--suave); }
+#aparatos li > div { min-width: 0; }
+#aparatos .nombre { font-size: 21px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#aparatos .estado { font-size: 17px; color: var(--suave); margin-top: 2px; white-space: nowrap;
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; gap: 7px; }
+#aparatos .estado .texto { overflow: hidden; text-overflow: ellipsis; }
+#aparatos .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--tenue); -webkit-flex: none; flex: none; }
+#aparatos li.on .punto { background: var(--ok); box-shadow: 0 0 10px var(--ok); }
+#aparatos li.off { opacity: .45; }
+
+#pie { margin-top: auto; display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between;
+  font-size: 18px; color: var(--tenue); padding: 0 6px; }
+
+.icono { display: inline-block; width: 28px; height: 28px; -webkit-flex: none; flex: none; }
+.icono svg { width: 100%; height: 100%; display: block; }
+
+/* ---------- Modo noche: negro total, la misma información, todo atenuado y cálido ---------- */
+#noche-velo { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 5; pointer-events: none;
+  background: #000; opacity: 0; transition: opacity 1.2s ease; }
+#lienzo.noche { --texto: #e7b789; --suave: rgba(231,183,137,.66); --tenue: rgba(231,183,137,.42); --acento: #eba468; --alerta: #e88a6a; --ok: #c99a6a;
+  --panel: rgba(255,170,100,.03); --borde: rgba(255,170,100,.1); --linea: rgba(255,170,100,.09);
+  background: #000; }
+#lienzo.noche .tarjeta { background: rgba(255,170,100,.03); box-shadow: inset 0 1px 0 rgba(255,190,140,.08); -webkit-backdrop-filter: none; backdrop-filter: none; }
+#lienzo.noche .tarjeta::before { display: none; }
+#lienzo.noche #hora-vidrio { background: linear-gradient(180deg, rgba(240,175,120,.5), rgba(240,175,120,.24)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+#lienzo.noche #noche-velo { opacity: var(--atenuar, .45); }
+#lienzo.noche #m-portada { opacity: .7; }
+#lienzo.noche #m-avance, #lienzo.noche .pildora, #lienzo.noche #aparatos li.on .punto { box-shadow: none; }
+#lienzo.noche #m-avance { background: var(--acento); }
+#lienzo.noche #alarma-hora { text-shadow: none; }
+
+#aviso { position: absolute; left: 50%; bottom: 130px; z-index: 6; -webkit-transform: translateX(-50%); transform: translateX(-50%);
+  font-size: 22px; color: #f2f1ee; background: rgba(20,20,24,.9); border: 1px solid rgba(255,255,255,.12); padding: 14px 26px;
+  border-radius: 99px; opacity: 0; transition: opacity .4s ease; white-space: nowrap; }
+#aviso.visible { opacity: 1; }
+
+/* Ajuste de alturas para que todo quepa en 1920 px */
+#lienzo { padding-top: 64px; padding-bottom: 40px; --hueco: 18px; }
+#cabeza { padding-bottom: 10px; }
+#horas { margin-top: 26px; }
+#t-hoy .lista li { padding: 9px 0; }
+#t-hoy .lista li:first-child { padding-top: 0; }
+.lista.manana li { padding: 6px 0; }
+#t-pendientes .lista li, #t-claude .lista li { padding: 9px 0; }
+.tarjeta { padding: 24px 28px; }
+/* Sin desenfoque en las tarjetas: con fondo liso no se nota, y girado en la tele hacía manchas */
+.tarjeta { -webkit-backdrop-filter: none; backdrop-filter: none; }
