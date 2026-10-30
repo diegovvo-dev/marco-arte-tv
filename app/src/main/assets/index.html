@@ -12,6 +12,17 @@
   <div id="atmosfera"><div class="capa" id="atm-a"></div><div class="capa" id="atm-b"></div></div>
 
   <main id="sala">
+    <!-- Reloj estilo pantalla de bloqueo, con números de vidrio líquido -->
+    <div id="reloj">
+      <div id="reloj-fecha"></div>
+      <div id="reloj-hora">
+        <canvas id="hora-sombra" aria-hidden="true"></canvas>
+        <div id="hora-vidrio" aria-hidden="true"></div>
+        <canvas id="hora-texto" role="img" aria-label="Hora"></canvas>
+      </div>
+      <div id="reloj-clima"></div>
+    </div>
+
     <div id="lienzo">
       <div class="marco" id="marco-a"><img id="img-a" alt=""></div>
       <div class="marco" id="marco-b"><img id="img-b" alt=""></div>

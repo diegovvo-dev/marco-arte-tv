@@ -3,6 +3,7 @@
 @font-face { font-family: "Cormorant"; src: url("fonts/CormorantGaramond-Medium.ttf"); font-weight: 500; font-style: normal; }
 @font-face { font-family: "Cormorant"; src: url("fonts/CormorantGaramond-MediumItalic.ttf"); font-weight: 500; font-style: italic; }
 @font-face { font-family: "Jost"; src: url("fonts/Jost-Regular.ttf"); font-weight: 400; }
+@font-face { font-family: "InterVar"; src: url("fonts/Inter-Variable.woff2") format("woff2"); font-weight: 100 900; }
 @font-face { font-family: "Jost"; src: url("fonts/Jost-Medium.ttf"); font-weight: 500; }
 
 :root {
@@ -188,3 +189,35 @@ body { font-family: var(--texto); -webkit-font-smoothing: antialiased; cursor: n
 #aviso { z-index: 4; }
 #ajustes { z-index: 5; }
 #noche { z-index: 6; }
+
+/* =====================================================================
+   Reloj estilo pantalla de bloqueo (solo en Pantalla completa)
+   Los números se dibujan en canvas: una máscara deja ver la pintura
+   desenfocada (vidrio) y otra capa pone el borde brillante.
+   ===================================================================== */
+#reloj { display: none; }
+#app.vidrio #hora-bloque { display: none; }
+#app.vidrio #reloj { display: block; position: absolute; left: 0; right: 0; top: 5vh; z-index: 3; text-align: center;
+  pointer-events: none; color: #fff; font-family: "InterVar", "Helvetica Neue", Arial, sans-serif; }
+#app.vidrio.reloj-centro #reloj { top: 50%; -webkit-transform: translateY(-58%); transform: translateY(-58%); }
+#reloj-fecha, #reloj-clima { font-weight: 600; text-shadow: 0 .1vh .5vh rgba(0,0,0,.35), 0 .2vh 2vh rgba(0,0,0,.25); }
+#reloj-fecha { font-size: 3.1vh; letter-spacing: .005em; }
+#reloj-clima { margin-top: .6vh; font-size: 2.5vh; font-weight: 500; opacity: .95; }
+#reloj-hora { position: relative; display: inline-block; margin-top: 1vh; }
+#reloj-hora canvas, #hora-vidrio { display: block; }
+#hora-sombra, #hora-vidrio { position: absolute; left: 0; top: 0; }
+#hora-texto { position: relative; }
+#hora-vidrio {
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+  -webkit-backdrop-filter: blur(var(--blur, 14px)) saturate(1.9) brightness(var(--brillo, 1.3));
+  backdrop-filter: blur(var(--blur, 14px)) saturate(1.9) brightness(var(--brillo, 1.3));
+  background: rgba(255,255,255,var(--tinte, .14));
+}
+
+/* Barra de porcentaje en Ajustes */
+#ajustes-lista .barra { display: inline-block; position: relative; width: 9vw; height: .7vh; margin: 0 .8vw; vertical-align: middle;
+  border-radius: 1vh; background: rgba(255,255,255,.25); box-shadow: inset 0 1px 1px rgba(0,0,0,.2); }
+#ajustes-lista .barra i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 1vh; background: #fff;
+  box-shadow: 0 0 1vh rgba(255,255,255,.6); }
+#ajustes-lista .barra b { position: absolute; top: 50%; width: 2.2vh; height: 2.2vh; margin: -1.1vh 0 0 -1.1vh; border-radius: 50%;
+  background: rgba(255,255,255,.95); box-shadow: 0 .3vh .8vh rgba(0,0,0,.3), inset 0 -.2vh .3vh rgba(0,0,0,.08); }

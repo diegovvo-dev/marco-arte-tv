@@ -51,6 +51,8 @@
       { v: 60, t: '1 hora' }, { v: 180, t: '3 horas' }, { v: 1440, t: '1 día' }] },
     { clave: 'ciudad', etiqueta: 'Clima de', opciones: CIUDADES.map(function (c, i) { return { v: i, t: c.nombre }; }) },
     { clave: 'estilo', etiqueta: 'Estilo', opciones: [{ v: 'vidrio', t: 'Pantalla completa' }, { v: 'galeria', t: 'Galería' }] },
+    { clave: 'liquido', etiqueta: 'Vidrio líquido', barra: true, opciones: [0,10,20,30,40,50,60,70,80,90,100].map(function (n) { return { v: n, t: n + ' %' }; }) },
+    { clave: 'posReloj', etiqueta: 'Lugar de la hora', opciones: [{ v: 'arriba', t: 'Arriba, como el iPhone' }, { v: 'centro', t: 'Centro de la pantalla' }] },
     { clave: 'ajuste', etiqueta: 'La obra', opciones: [{ v: 'llenar', t: 'Llenar la pantalla' }, { v: 'completa', t: 'Verla entera' }] },
     { clave: 'formato24', etiqueta: 'Hora', opciones: [{ v: false, t: '12 h (a. m. / p. m.)' }, { v: true, t: '24 h' }] },
     { clave: 'mezclarFavoritas', etiqueta: 'Mis favoritas de vez en cuando', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
@@ -59,7 +61,7 @@
     { clave: 'cerrar', etiqueta: 'Cerrar', boton: true }
   ];
 
-  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'vidrio', ajuste: 'llenar', formato24: false, horizontales: true, noche: true, mezclarFavoritas: true };
+  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'vidrio', ajuste: 'llenar', liquido: 70, posReloj: 'arriba', formato24: false, horizontales: true, noche: true, mezclarFavoritas: true };
 
   var DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
   var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -375,8 +377,104 @@
       $('hora-ampm').textContent = h < 12 ? 'a. m.' : 'p. m.';
     }
     $('fecha').textContent = DIAS[d.getDay()] + ' ' + d.getDate() + ' de ' + MESES[d.getMonth()];
+    $('reloj-fecha').textContent = DIAS[d.getDay()] + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()];
+    dibujarHora(false);
     var nocturno = ajustes.noche && (h >= 23 || h < 7);
     $('noche').className = nocturno ? 'activa' : '';
+  }
+
+  // ---------------------------------------------------------------- Reloj de vidrio líquido
+  var horaDibujada = '';
+  var medidor = document.createElement('canvas');
+
+  function textoHora() {
+    var d = new Date(), h = d.getHours(), m = d.getMinutes();
+    if (ajustes.formato24) return dosDigitos(h) + ':' + dosDigitos(m);
+    return (h % 12 === 0 ? 12 : h % 12) + ':' + dosDigitos(m);
+  }
+
+  function dibujarHora(forzar) {
+    if (ajustes.estilo === 'galeria') return;
+    var txt = textoHora();
+    if (!forzar && txt === horaDibujada) return;
+    horaDibujada = txt;
+
+    var g = Math.max(0, Math.min(100, +ajustes.liquido || 0)) / 100;
+    var fs = Math.round(window.innerHeight * 0.25);
+    var dpr = window.devicePixelRatio || 1;
+    var fuente = '600 ' + fs + 'px InterVar, "Helvetica Neue", Arial, sans-serif';
+    var m = medidor.getContext('2d');
+    m.font = fuente;
+    var espacio = -0.025 * fs;
+    var letras = txt.split('');
+    var anchos = letras.map(function (c) { return m.measureText(c).width; });
+    var total = anchos.reduce(function (a, b) { return a + b; }, 0) + espacio * (letras.length - 1);
+    var pad = Math.round(fs * 0.14);
+    var alto = Math.round(fs * 0.74);          // altura de los números en Inter
+    var W = Math.ceil(total + pad * 2), H = alto + pad * 2;
+    var base = pad + alto;
+
+    function preparar(c) {
+      c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+      c.style.width = W + 'px'; c.style.height = H + 'px';
+      var x = c.getContext('2d');
+      x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      x.clearRect(0, 0, W, H);
+      x.font = fuente;
+      x.textBaseline = 'alphabetic';
+      return x;
+    }
+    function escribir(x, pinta, dx) {
+      var px = pad;
+      for (var i = 0; i < letras.length; i++) { pinta(x, letras[i], px + (dx || 0), base); px += anchos[i] + espacio; }
+    }
+
+    // 1) Máscara con la forma de los números para el vidrio
+    var mascara = document.createElement('canvas');
+    var xm = preparar(mascara);
+    xm.fillStyle = '#fff';
+    escribir(xm, function (x, c, px, py) { x.fillText(c, px, py); });
+    var url = 'url(' + mascara.toDataURL('image/png') + ')';
+    var vidrio = $('hora-vidrio');
+    vidrio.style.width = W + 'px'; vidrio.style.height = H + 'px';
+    vidrio.style.webkitMaskImage = url; vidrio.style.maskImage = url;
+    var reloj = $('reloj');
+    // 0 % = blanco sólido · 50 % = vidrio esmerilado · 100 % = vidrio claro, casi transparente
+    reloj.style.setProperty('--blur', (window.innerHeight * (0.018 - 0.013 * g)).toFixed(1) + 'px');
+    reloj.style.setProperty('--brillo', (1.38 - 0.24 * g).toFixed(2));
+    reloj.style.setProperty('--tinte', (0.03 + 0.2 * (1 - g)).toFixed(3));
+
+    // 2) Sombra suave debajo, para que los números floten sobre la pintura
+    var xs = preparar($('hora-sombra'));
+    xs.shadowColor = 'rgba(0,0,0,' + (0.14 + 0.2 * g).toFixed(2) + ')';
+    xs.shadowBlur = fs * 0.09;
+    xs.shadowOffsetY = fs * 0.02;
+    xs.shadowOffsetX = 10000;
+    xs.fillStyle = '#000';
+    escribir(xs, function (x, c, px, py) { x.fillText(c, px, py); }, -10000);
+
+    // 3) Relleno blanco (más sólido con poco vidrio) y borde brillante
+    var xt = preparar($('hora-texto'));
+    xt.fillStyle = 'rgba(255,255,255,' + (1 - g).toFixed(3) + ')';
+    escribir(xt, function (x, c, px, py) { x.fillText(c, px, py); });
+    // Borde brillante: la forma de los números menos la misma forma movida un poco.
+    // Así no aparecen las líneas internas de la fuente, y la luz pega más arriba.
+    var aBorde = 0.2 + 0.8 * g;
+    var grosor = Math.max(1, fs * (0.007 + 0.007 * g));
+    function filo(dx, dy, alfa) {
+      var c = document.createElement('canvas');
+      var x = preparar(c);
+      x.fillStyle = 'rgba(255,255,255,' + alfa.toFixed(3) + ')';
+      escribir(x, function (k, ch, px, py) { k.fillText(ch, px, py); });
+      x.globalCompositeOperation = 'destination-out';
+      x.fillStyle = '#000';
+      escribir(x, function (k, ch, px, py) { k.fillText(ch, px + dx, py + dy); });
+      xt.drawImage(c, 0, 0, W, H);
+    }
+    filo(0, grosor, aBorde);               // arriba, la luz principal
+    filo(0, -grosor, aBorde * 0.55);       // abajo
+    filo(grosor, 0, aBorde * 0.4);         // izquierda
+    filo(-grosor, 0, aBorde * 0.4);        // derecha
   }
 
   // ---------------------------------------------------------------- Clima
@@ -403,6 +501,7 @@
       var t = Math.round(r.current.temperature_2m);
       $('clima-temp').textContent = t + '°';
       $('clima-texto').textContent = describirClima(r.current.weather_code) + ' en ' + c.nombre;
+      $('reloj-clima').textContent = c.nombre + ' · ' + t + '° ' + describirClima(r.current.weather_code);
       $('clima-rango').textContent = 'máx. ' + Math.round(r.daily.temperature_2m_max[0]) + '° · mín. ' + Math.round(r.daily.temperature_2m_min[0]) + '°';
     }).catch(function () {
       if (!$('clima-temp').textContent) $('clima-texto').textContent = 'Clima no disponible';
@@ -439,7 +538,12 @@
         et.textContent = f.etiqueta;
         var val = document.createElement('span');
         val.className = 'valor';
-        val.innerHTML = '<span class="flecha">◀</span>' + '<span class="t"></span>' + '<span class="flecha">▶</span>';
+        var barra = '';
+        if (f.barra) {
+          var pct = ajustes[f.clave];
+          barra = '<span class="barra"><i style="width:' + pct + '%"></i><b style="left:' + pct + '%"></b></span>';
+        }
+        val.innerHTML = '<span class="flecha">◀</span>' + barra + '<span class="t"></span>' + '<span class="flecha">▶</span>';
         val.querySelector('.t').textContent = valorTexto(f);
         li.appendChild(et);
         li.appendChild(val);
@@ -483,7 +587,9 @@
       programar();
     } else if (clave === 'ciudad') {
       actualizarClima();
-    } else if (clave === 'estilo' || clave === 'ajuste') {
+    } else if (clave === 'liquido') {
+      dibujarHora(true);
+    } else if (clave === 'estilo' || clave === 'ajuste' || clave === 'posReloj') {
       aplicarEstilo();
     } else if (clave === 'formato24' || clave === 'noche') {
       actualizarReloj();
@@ -491,7 +597,9 @@
   }
 
   function aplicarEstilo() {
-    $('app').className = ajustes.estilo === 'galeria' ? 'galeria' : ('vidrio' + (ajustes.ajuste === 'completa' ? ' completa' : ''));
+    $('app').className = ajustes.estilo === 'galeria' ? 'galeria' :
+      ('vidrio' + (ajustes.ajuste === 'completa' ? ' completa' : '') + (ajustes.posReloj === 'centro' ? ' reloj-centro' : ''));
+    dibujarHora(true);
     reacomodar();
   }
 
@@ -552,7 +660,10 @@
     return false;
   };
 
-  window.addEventListener('resize', reacomodar);
+  window.addEventListener('resize', function () { reacomodar(); dibujarHora(true); });
+  if (document.fonts && document.fonts.load) {
+    document.fonts.load('600 100px InterVar').then(function () { dibujarHora(true); }, function () {});
+  }
 
   // ---------------------------------------------------------------- Arranque
   aplicarEstilo();
