@@ -222,6 +222,49 @@ public class MainActivity extends Activity {
             }).start();
         }
 
+        /** Descarga un texto de internet (calendarios) y lo entrega con window.alDescarga(id, texto, error). */
+        @JavascriptInterface
+        public void descargar(final String id, final String direccion) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    String texto = "", error = "";
+                    try {
+                        String u = direccion.replaceFirst("(?i)^webcal:", "https:");
+                        for (int salto = 0; salto < 5; salto++) {
+                            java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(u).openConnection();
+                            c.setInstanceFollowRedirects(false);
+                            c.setConnectTimeout(15000);
+                            c.setReadTimeout(30000);
+                            c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android) MarcoArte/1.0");
+                            c.setRequestProperty("Accept", "text/calendar, */*");
+                            int code = c.getResponseCode();
+                            if (code >= 300 && code < 400 && c.getHeaderField("Location") != null) {
+                                u = new java.net.URL(new java.net.URL(u), c.getHeaderField("Location")).toString().replaceFirst("(?i)^webcal:", "https:");
+                                c.disconnect();
+                                continue;
+                            }
+                            if (code != 200) { error = "HTTP " + code; c.disconnect(); break; }
+                            java.io.InputStream in = c.getInputStream();
+                            java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream();
+                            byte[] buf = new byte[8192];
+                            int n;
+                            while ((n = in.read(buf)) > 0 && b.size() < 8 * 1024 * 1024) b.write(buf, 0, n);
+                            in.close();
+                            c.disconnect();
+                            texto = b.toString("UTF-8");
+                            break;
+                        }
+                    } catch (Exception e) {
+                        error = e.getClass().getSimpleName();
+                    }
+                    final String js = "window.alDescarga && alDescarga(" + org.json.JSONObject.quote(id) + "," +
+                            org.json.JSONObject.quote(texto) + "," + org.json.JSONObject.quote(error) + ")";
+                    web.post(new Runnable() { @Override public void run() { web.evaluateJavascript(js, null); } });
+                }
+            }).start();
+        }
+
         @JavascriptInterface
         public String spotify() {
             File f = new File(carpeta(), "spotify.json");

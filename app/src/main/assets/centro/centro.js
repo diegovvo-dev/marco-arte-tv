@@ -198,7 +198,8 @@
         return '<li><span class="color" style="background:' + (e.color || 'transparent') + '"></span><span class="cuando">Mañana ' + (e.todoElDia ? '' : hora12(e.ini, false)) + '</span><span class="que">' + esc(e.titulo) + '</span></li>';
       }).join('');
     } else {
-      vacio('eventos', 'Conecta tu calendario de iCloud');
+      var links = CONFIG.calendarios || (CONFIG.calendario ? [CONFIG.calendario] : []);
+      vacio('eventos', !links.length ? 'Conecta tu calendario de iCloud' : D.errorCalendario ? 'No pude leer el calendario (' + D.errorCalendario + ')' : 'Cargando calendario…');
       $('hoy-resumen').textContent = '';
       $('eventos-manana').innerHTML = '';
     }
@@ -254,23 +255,26 @@
   }
 
   // ------------------------------------------------------------ Ajustes (☰): brillo y vidrio líquido
-  var ajustes = { brillo: 100, liquido: 70 };
+  var ajustes = { brillo: 100, liquido: 70, tamano: 94 };
   try {
     var g = JSON.parse(localStorage.getItem('centro.ajustes') || '{}');
     if (g.brillo != null) ajustes.brillo = g.brillo;
     if (g.liquido != null) ajustes.liquido = g.liquido;
+    if (g.tamano != null) ajustes.tamano = g.tamano;
   } catch (e) {}
   function guardar() { try { localStorage.setItem('centro.ajustes', JSON.stringify(ajustes)); } catch (e) {} }
 
   var FILAS = [
     { clave: 'brillo', etiqueta: 'Brillo', min: 10, max: 100 },
-    { clave: 'liquido', etiqueta: 'Vidrio líquido', min: 0, max: 100 }
+    { clave: 'liquido', etiqueta: 'Vidrio líquido', min: 0, max: 100 },
+    { clave: 'tamano', etiqueta: 'Tamaño de pantalla', min: 70, max: 100, paso: 2 }
   ];
   var panelAbierto = false, filaActiva = 0;
 
   function aplicarAjustes() {
     $('velo').style.opacity = (Math.min(0.9, 1 - ajustes.brillo / 100)).toFixed(2);
     LIQUIDO = ajustes.liquido;
+    acomodar();
     dibujarHora(horaDibujada || hora12(new Date(), false), true);
   }
 
@@ -282,13 +286,14 @@
     }).join('');
     var ip = '';
     try { ip = (window.Android && Android.ip && Android.ip()) || ''; } catch (e) {}
-    $('ajustes-lista').innerHTML += '<li class="info"><div class="fila-ajuste"><span>Buzón de esta tele</span><b>' + (ip ? 'http://' + ip + ':8765' : 'Sin Wi‑Fi') + '</b></div></li>';
+    $('ajustes-lista').innerHTML += '<li class="info"><div class="fila-ajuste"><span>Buzón de esta tele</span><b>' + (ip ? 'http://' + ip + ':8765' : 'Sin Wi‑Fi') + '</b></div>' +
+      '<div class="fila-ajuste"><span>Pantalla</span><b>' + medida().W + ' × ' + medida().H + '</b></div></li>';
   }
   function abrirPanel() { panelAbierto = true; filaActiva = 0; $('ajustes').hidden = false; pintarPanel(); }
   function cerrarPanel() { panelAbierto = false; $('ajustes').hidden = true; }
   function mover(dir) {
     var f = FILAS[filaActiva];
-    ajustes[f.clave] = Math.max(f.min, Math.min(f.max, ajustes[f.clave] + dir * 10));
+    ajustes[f.clave] = Math.max(f.min, Math.min(f.max, ajustes[f.clave] + dir * (f.paso || 10)));
     guardar(); aplicarAjustes(); pintarPanel();
   }
 
@@ -310,16 +315,26 @@
   // ------------------------------------------------------------ Tamaño y giro
   // Con la orilla de abajo a la derecha, la imagen se gira 90° a la derecha.
   // En una pantalla que ya es vertical (vista previa) no se gira.
-  function acomodar() {
-    var W = window.innerWidth, H = window.innerHeight, L = $('lienzo');
-    if (W > H) {
-      var e = Math.min(W / 1920, H / 1080);
-      L.style.transform = L.style.webkitTransform = 'translate(' + (W / 2 + 960 * e) + 'px,' + (H / 2 - 540 * e) + 'px) rotate(90deg) scale(' + e + ')';
-    } else {
-      var s = Math.min(W / 1080, H / 1920);
-      L.style.transform = L.style.webkitTransform = 'translate(' + ((W - 1080 * s) / 2) + 'px,' + ((H - 1920 * s) / 2) + 'px) scale(' + s + ')';
-    }
+  function medida() {
+    var de = document.documentElement;
+    return { W: Math.round(de.clientWidth || window.innerWidth), H: Math.round(de.clientHeight || window.innerHeight) };
   }
+  function acomodar() {
+    var m = medida(), W = m.W, H = m.H, L = $('lienzo');
+    var t = (typeof ajustes !== 'undefined' && ajustes.tamano ? ajustes.tamano : 94) / 100;
+    var tr;
+    if (W > H) {
+      var e = Math.min(W / 1920, H / 1080) * t;
+      tr = 'translate(' + (W / 2 + 960 * e) + 'px,' + (H / 2 - 540 * e) + 'px) rotate(90deg) scale(' + e + ')';
+    } else {
+      var s2 = Math.min(W / 1080, H / 1920) * t;
+      tr = 'translate(' + ((W - 1080 * s2) / 2) + 'px,' + ((H - 1920 * s2) / 2) + 'px) scale(' + s2 + ')';
+    }
+    L.style.webkitTransform = tr; L.style.transform = tr;
+  }
+  window.addEventListener('load', acomodar);
+  [300, 1000, 3000, 8000].forEach(function (ms) { setTimeout(acomodar, ms); });
+  setInterval(acomodar, 60000);
   window.addEventListener('resize', acomodar);
   acomodar();
 
@@ -339,6 +354,22 @@
       x.send();
     });
   }
+  // Descargas largas (calendarios) las hace la parte de Android, que no tiene límites del navegador.
+  var descargas = {}, nDesc = 0;
+  window.alDescarga = function (id, texto, error) {
+    var f = descargas[id]; delete descargas[id];
+    if (f) f(texto, error);
+  };
+  function descargar(url) {
+    if (!(window.Android && Android.descargar)) return pedir(url.replace(/^webcal:/i, 'https:'), 30000);
+    return new Promise(function (ok, falla) {
+      var id = 'd' + (++nDesc);
+      descargas[id] = function (t, e) { if (t) ok(t); else falla(new Error(e || 'vacío')); };
+      setTimeout(function () { if (descargas[id]) { delete descargas[id]; falla(new Error('tiempo')); } }, 60000);
+      Android.descargar(id, url);
+    });
+  }
+
   function haceCuanto(d) {
     var min = Math.round((Date.now() - d) / 60000);
     if (min < 1) return 'ahora';
@@ -408,15 +439,17 @@
     var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     var manana = new Date(hoy); manana.setDate(hoy.getDate() + 1);
     var pasado = new Date(hoy); pasado.setDate(hoy.getDate() + 2);
-    var pendientes = links.length, todos = [], alguno = false;
+    var pendientes = links.length, todos = [], alguno = false, errores = [];
     links.forEach(function (link) {
-      pedir(link.url.replace(/^webcal:/i, 'https:'), 30000).then(function (t) {
+      descargar(link.url).then(function (t) {
         alguno = true;
         var evs = window.leerICS(t, hoy, pasado);
         if (link.nombre) evs.forEach(function (e) { e.calendario = link.nombre; });
         todos = todos.concat(evs);
-      }).catch(function () {}).then(function () {
-        if (--pendientes > 0 || !alguno) return;
+      }).catch(function (e) { errores.push((link.nombre || 'calendario') + ': ' + e.message); }).then(function () {
+        if (--pendientes > 0) return;
+        if (!alguno) { D.errorCalendario = errores[0] || 'sin respuesta'; repintar(); return; }
+        D.errorCalendario = '';
         todos.forEach(function (e) { e.color = colorDe(e.calendario); });
         todos.sort(function (a, b) { return (a.todoElDia ? 0 : 1) - (b.todoElDia ? 0 : 1) || a.ini - b.ini; });
         D.eventos = todos.filter(function (e) { return e.ini < manana && e.fin > hoy; });

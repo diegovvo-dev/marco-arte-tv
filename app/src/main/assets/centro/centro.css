@@ -164,3 +164,9 @@ body { font-family: var(--letra); -webkit-font-smoothing: antialiased; cursor: n
 
 .lista .color { width: 4px; -webkit-align-self: stretch; align-self: stretch; border-radius: 2px; -webkit-flex: none; flex: none; margin-right: -4px; opacity: .9; }
 .lista li.pasado .color { opacity: .5; }
+
+/* Si hay poca información, el espacio se reparte parejo en lugar de dejar un hueco abajo */
+#lienzo { -webkit-justify-content: space-between; justify-content: space-between; }
+#pie { margin-top: 0; }
+html, body { position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
+#ajustes-lista li.info .fila-ajuste + .fila-ajuste { margin-top: 10px; }
