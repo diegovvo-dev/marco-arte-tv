@@ -265,7 +265,7 @@ body { font-family: var(--texto); -webkit-font-smoothing: antialiased; cursor: n
 /* Con la barra de música, la cartela se hace un poco más angosta y el aviso sube */
 #app.vidrio #cartela { max-width: 29vw; }
 #app.galeria #musica { display: none !important; }
-#musica.visible ~ #aviso { bottom: 31vh; }
+
 
 #obra-credito:empty { display: none; }
 
