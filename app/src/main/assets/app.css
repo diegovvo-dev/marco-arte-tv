@@ -268,3 +268,9 @@ body { font-family: var(--texto); -webkit-font-smoothing: antialiased; cursor: n
 #musica.visible ~ #aviso { bottom: 31vh; }
 
 #obra-credito:empty { display: none; }
+
+/* Barra de avance de la canción con tiempos, como en el iPhone */
+#musica-linea { margin-top: .9vh; height: .7vh; }
+#musica-tiempos { display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between;
+  margin-top: .5vh; font-size: 1.45vh; font-weight: 500; opacity: .75; font-variant-numeric: tabular-nums; }
+#musica-portada { width: 8.6vh; height: 8.6vh; }

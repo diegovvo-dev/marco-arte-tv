@@ -525,11 +525,19 @@
     pintarProgreso();
   }
 
+  function minutos(ms) {
+    var t = Math.max(0, Math.floor(ms / 1000));
+    return Math.floor(t / 60) + ':' + dosDigitos(t % 60);
+  }
+
   function pintarProgreso() {
     var e = sp.estado;
     if (!e) return;
     var p = e.progreso + (e.sonando ? Date.now() - e.leido : 0);
-    $('musica-avance').style.width = Math.min(100, p / e.duracion * 100).toFixed(2) + '%';
+    p = Math.min(p, e.duracion);
+    $('musica-avance').style.width = (p / e.duracion * 100).toFixed(2) + '%';
+    $('musica-va').textContent = minutos(p);
+    $('musica-falta').textContent = '-' + minutos(e.duracion - p);
   }
 
   var ICONO_PAUSA = '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>';
