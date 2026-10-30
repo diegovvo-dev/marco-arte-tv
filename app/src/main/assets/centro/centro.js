@@ -320,7 +320,7 @@
     poner('pie-cambio', (D.divisas || []).map(function (d) {
       var sube = d.cambio > 0.005, baja = d.cambio < -0.005;
       var flecha = sube ? '<svg viewBox="0 0 10 10"><path d="M5 1.5L9 7.5H1z"/></svg>' : baja ? '<svg viewBox="0 0 10 10"><path d="M5 8.5L9 2.5H1z"/></svg>' : '<svg viewBox="0 0 10 10"><rect x="1.5" y="4.2" width="7" height="1.6" rx=".8"/></svg>';
-      return '<span class="divisa ' + (sube ? 'sube' : baja ? 'baja' : 'igual') + '"><span class="sim">' + SIM[d.k] + '</span><b>' + d.v.toFixed(2) + '</b>' +
+      return '<span class="divisa ' + (sube ? 'sube' : baja ? 'baja' : 'igual') + '"><span class="sigla">' + d.k + '</span><span class="sim">' + SIM[d.k] + '</span><b>' + d.v.toFixed(2) + '</b>' +
         '<span class="flecha">' + flecha + Math.abs(d.cambio).toFixed(2) + ' %</span></span>';
     }).join(''));
     texto('pie-actualizado', D.actualizado ? 'Actualizado ' + hora12(D.actualizado, true) : '');
