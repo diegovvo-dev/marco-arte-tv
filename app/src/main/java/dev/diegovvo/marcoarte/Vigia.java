@@ -12,8 +12,9 @@ import android.os.Build;
 import android.os.IBinder;
 
 /**
- * Servicio pequeño que se queda escuchando: cuando la tele se prende y el Fire TV despierta,
- * abre Marco Arte. Si estás en otra app con la tele prendida, no hace nada.
+ * Servicio pequeño que se queda escuchando: cuando la tele se prende y el Fire TV despierta
+ * (o cuando sale de su protector de pantalla), abre Marco Arte.
+ * Si estás en otra app con la tele prendida, no hace nada.
  */
 public class Vigia extends Service {
     private BroadcastReceiver alPrender;
@@ -57,7 +58,11 @@ public class Vigia extends Service {
                 }, 1500);
             }
         };
-        registerReceiver(alPrender, new IntentFilter(Intent.ACTION_SCREEN_ON));
+        // Tele que no le avisa al Fire TV cuando se prende (como la Atvio): cuando el Fire TV
+        // se queda en su protector de pantalla y alguien lo despierta, también abrimos la app.
+        IntentFilter filtro = new IntentFilter(Intent.ACTION_SCREEN_ON);
+        filtro.addAction(Intent.ACTION_DREAMING_STOPPED);
+        registerReceiver(alPrender, filtro);
     }
 
     @Override
