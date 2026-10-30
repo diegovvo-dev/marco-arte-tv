@@ -14,7 +14,7 @@
     <div id="fecha"></div>
     <div id="hora"><canvas id="hora-sombra" aria-hidden="true"></canvas><div id="hora-vidrio" aria-hidden="true"></div><canvas id="hora-texto" role="img" aria-label="Hora"></canvas></div>
     <div><div id="clima-ahora"><span id="clima-icono" class="icono"></span><span id="clima-temp"></span><span id="clima-texto"></span></div></div>
-    <ol id="horas" class="solo-dia"></ol>
+    <ol id="horas"></ol>
   </header>
 
   <section class="fila">
@@ -23,20 +23,20 @@
       <div class="grande" id="alarma-hora">—</div>
       <p class="nota" id="alarma-falta"></p>
     </article>
-    <article class="tarjeta solo-dia" id="t-cuenta">
+    <article class="tarjeta" id="t-cuenta">
       <h2><span class="icono" data-i="avion"></span><span id="cuenta-titulo">Madrid</span></h2>
       <div class="grande"><span id="cuenta-dias">—</span><small> días</small></div>
       <p class="nota" id="cuenta-nota"></p>
     </article>
   </section>
 
-  <article class="tarjeta solo-dia" id="t-hoy">
+  <article class="tarjeta" id="t-hoy">
     <h2><span class="icono" data-i="calendario"></span>Hoy<span class="derecha" id="hoy-resumen"></span></h2>
     <ul id="eventos" class="lista"></ul>
     <ul id="eventos-manana" class="lista manana"></ul>
   </article>
 
-  <section class="fila solo-dia">
+  <section class="fila">
     <article class="tarjeta" id="t-pendientes">
       <h2><span class="icono" data-i="check"></span>Pendientes<span class="derecha" id="pend-resumen"></span></h2>
       <ul id="pendientes" class="lista"></ul>
@@ -57,7 +57,7 @@
     </div>
   </article>
 
-  <article class="tarjeta solo-dia" id="t-cuarto">
+  <article class="tarjeta" id="t-cuarto">
     <h2><span class="icono" data-i="casa"></span>Mi cuarto</h2>
     <ul id="aparatos"></ul>
   </article>
@@ -67,8 +67,16 @@
     <span id="pie-actualizado"></span>
   </footer>
 
-  <div id="noche-velo"></div>
+  <div id="velo"></div>
   <div id="aviso" role="status"></div>
+
+  <div id="ajustes" hidden>
+    <div class="ajustes-caja">
+      <h2>Ajustes</h2>
+      <ul id="ajustes-lista"></ul>
+      <p class="ajustes-ayuda"><b>▲ ▼</b> moverse &nbsp;·&nbsp; <b>◀ ▶</b> ajustar &nbsp;·&nbsp; <b>☰</b> o <b>Atrás</b> cerrar</p>
+    </div>
+  </div>
 </div>
 <script src="centro.js"></script>
 </body>

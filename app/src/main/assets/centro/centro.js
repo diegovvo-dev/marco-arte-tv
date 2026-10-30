@@ -207,31 +207,55 @@
     $('pie-actualizado').textContent = 'Actualizado ' + hora12(D.actualizado, true);
   }
 
-  // ------------------------------------------------------------ Modo noche (botón OK)
-  // Negro total, misma información, todo atenuado y en tonos cálidos. ▲ ▼ ajustan qué tan tenue.
-  var estado = { noche: false, atenuar: 45 };
-  try { var g = JSON.parse(localStorage.getItem('centro.estado') || '{}'); if (typeof g.noche === 'boolean') estado.noche = g.noche; if (g.atenuar != null) estado.atenuar = g.atenuar; } catch (e) {}
-  function guardar() { try { localStorage.setItem('centro.estado', JSON.stringify(estado)); } catch (e) {} }
-  var avisoT = null;
-  function avisar(t) {
-    var a = $('aviso'); a.textContent = t; a.className = 'visible';
-    clearTimeout(avisoT); avisoT = setTimeout(function () { a.className = ''; }, 2200);
-  }
-  function aplicarNoche() {
-    $('lienzo').className = estado.noche ? 'noche' : '';
-    $('lienzo').style.setProperty('--atenuar', (estado.atenuar / 100).toFixed(2));
-    LIQUIDO = estado.noche ? 30 : 70;
+  // ------------------------------------------------------------ Ajustes (☰): brillo y vidrio líquido
+  var ajustes = { brillo: 100, liquido: 70 };
+  try {
+    var g = JSON.parse(localStorage.getItem('centro.ajustes') || '{}');
+    if (g.brillo != null) ajustes.brillo = g.brillo;
+    if (g.liquido != null) ajustes.liquido = g.liquido;
+  } catch (e) {}
+  function guardar() { try { localStorage.setItem('centro.ajustes', JSON.stringify(ajustes)); } catch (e) {} }
+
+  var FILAS = [
+    { clave: 'brillo', etiqueta: 'Brillo', min: 10, max: 100 },
+    { clave: 'liquido', etiqueta: 'Vidrio líquido', min: 0, max: 100 }
+  ];
+  var panelAbierto = false, filaActiva = 0;
+
+  function aplicarAjustes() {
+    $('velo').style.opacity = (Math.min(0.9, 1 - ajustes.brillo / 100)).toFixed(2);
+    LIQUIDO = ajustes.liquido;
     dibujarHora(horaDibujada || hora12(new Date(), false), true);
   }
-  window.alternarNoche = function () { estado.noche = !estado.noche; guardar(); aplicarNoche(); avisar(estado.noche ? 'Modo noche' : 'Modo día'); };
+
+  function pintarPanel() {
+    $('ajustes-lista').innerHTML = FILAS.map(function (f, i) {
+      var v = ajustes[f.clave], pct = (v - f.min) / (f.max - f.min) * 100;
+      return '<li class="' + (i === filaActiva ? 'activo' : '') + '"><div class="fila-ajuste"><span>' + f.etiqueta + '</span><b>' + v + ' %</b></div>' +
+        '<div class="barra"><i style="width:' + pct + '%"></i><b style="left:' + pct + '%"></b></div></li>';
+    }).join('');
+  }
+  function abrirPanel() { panelAbierto = true; filaActiva = 0; $('ajustes').hidden = false; pintarPanel(); }
+  function cerrarPanel() { panelAbierto = false; $('ajustes').hidden = true; }
+  function mover(dir) {
+    var f = FILAS[filaActiva];
+    ajustes[f.clave] = Math.max(f.min, Math.min(f.max, ajustes[f.clave] + dir * 10));
+    guardar(); aplicarAjustes(); pintarPanel();
+  }
+
+  // Botones del control. La app de Android manda ☰ como window.alMenu() y Atrás como window.alAtras().
+  window.alMenu = function () { if (panelAbierto) cerrarPanel(); else abrirPanel(); };
+  window.alAtras = function () { if (panelAbierto) { cerrarPanel(); return true; } return false; };
   document.addEventListener('keydown', function (e) {
     var k = e.key, c = e.keyCode;
-    if (k === 'Enter' || c === 13 || c === 23) { e.preventDefault(); if (!e.repeat) window.alternarNoche(); }
-    else if (estado.noche && (k === 'ArrowUp' || c === 38 || k === 'ArrowDown' || c === 40)) {
-      e.preventDefault();
-      estado.atenuar = Math.max(0, Math.min(85, estado.atenuar + ((k === 'ArrowUp' || c === 38) ? -10 : 10)));
-      guardar(); aplicarNoche(); avisar('Brillo ' + (100 - estado.atenuar) + ' %');
-    }
+    if (k === 'ContextMenu' || c === 93 || c === 82) { e.preventDefault(); window.alMenu(); return; }
+    if (!panelAbierto) return;
+    e.preventDefault();
+    if (k === 'ArrowUp' || c === 38) { filaActiva = (filaActiva + FILAS.length - 1) % FILAS.length; pintarPanel(); }
+    else if (k === 'ArrowDown' || c === 40) { filaActiva = (filaActiva + 1) % FILAS.length; pintarPanel(); }
+    else if (k === 'ArrowLeft' || c === 37) mover(-1);
+    else if (k === 'ArrowRight' || c === 39) mover(1);
+    else if (k === 'Escape' || k === 'Enter' || c === 27 || c === 13) cerrarPanel();
   });
 
   // ------------------------------------------------------------ Tamaño y giro
@@ -251,7 +275,7 @@
   acomodar();
 
   window.centroEjemplo = EJEMPLO;
-  aplicarNoche();
+  aplicarAjustes();
   pintar(DATOS);
   setInterval(function () { pintar(DATOS); }, 20000);
 })();
