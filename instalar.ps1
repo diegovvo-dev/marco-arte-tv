@@ -83,6 +83,9 @@ function Conectar($dir, $nombre) {
 function Instalar($tele, $modo, $config) {
     Paso 'Instalando la app'
     & $adb -s $tele install -r 'marco-arte-tv.apk'
+    # Permiso para que la app se abra sola al prender la tele
+    & $adb -s $tele shell appops set $paquete SYSTEM_ALERT_WINDOW allow | Out-Null
+    & $adb -s $tele shell cmd deviceidle whitelist +$paquete | Out-Null
     $tmp = Join-Path $carpeta "tmp-$modo"
     New-Item -ItemType Directory -Force $tmp | Out-Null
     [IO.File]::WriteAllText((Join-Path $tmp 'modo.txt'), $modo, $utf8)

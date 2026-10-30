@@ -69,6 +69,7 @@ public class MainActivity extends Activity {
         } else {
             web.loadUrl("file:///android_asset/index.html");
         }
+        Vigia.iniciar(this);
         web.requestFocus();
     }
 
