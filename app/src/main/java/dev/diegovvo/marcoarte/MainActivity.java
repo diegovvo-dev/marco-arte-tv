@@ -158,7 +158,7 @@ public class MainActivity extends Activity {
         /** Lee un archivo de datos de la carpeta de la app (solo nombres conocidos). */
         @JavascriptInterface
         public String leer(String nombre) {
-            String[] ok = {"iphone", "laptop", "tele", "claude", "config"};
+            String[] ok = {"iphone", "ipad", "laptop", "tele", "claude", "config"};
             for (String n : ok) if (n.equals(nombre)) return leerArchivo(new File(carpeta(), nombre + ".json"));
             if (nombre.matches("desc-d[0-9]+")) {
                 File f = new File(carpeta(), nombre + ".txt");

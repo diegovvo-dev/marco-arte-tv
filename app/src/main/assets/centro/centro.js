@@ -61,14 +61,14 @@
     ] },
     musica: { titulo: 'Vagabundo', artista: 'Sebastián Yatra, Manuel Turizo, Beéle', pos: 83, dur: 215, leido: Date.now(), sonando: true, portada: '' },
     aparatos: [
-      { nombre: 'Laptop', icono: 'laptop', on: true, estado: 'Cargando · 66 %' },
+      { nombre: 'Laptop', icono: 'laptop', on: true, bateria: 66, carga: true, estado: '' },
       
       { nombre: 'Marco Arte', icono: 'tele', on: true, estado: 'Las bodas de Caná' },
       { nombre: 'Sonos Diego', icono: 'bocina', on: true, estado: 'Sonando' },
-      { nombre: 'iPhone', icono: 'telefono', on: true, estado: 'En casa · 82 %' },
+      { nombre: 'iPhone', icono: 'telefono', on: true, bateria: 82, estado: '' },
       { nombre: 'iPad', icono: 'tablet', on: false, estado: 'Sin conexión' }
     ],
-    cambio: 'EUR 1 = MXN 21.48',
+    divisas: [{ k: 'USD', v: 18.42, cambio: 0.31 }, { k: 'EUR', v: 21.39, cambio: -0.18 }, { k: 'GBP', v: 24.87, cambio: 0.05 }],
     actualizado: new Date()
   };
   var DATOS = EJEMPLO;
@@ -124,7 +124,8 @@
       var pad = Math.round(fs2 * 0.1), alto = Math.round(fs2 * 0.74);
       var W = Math.ceil(tot + pad * 2), H = alto + pad * 2, base = pad + alto;
       function preparar(cv) {
-        cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+        var w2 = Math.round(W * dpr), h2 = Math.round(H * dpr);
+        if (cv.width !== w2 || cv.height !== h2) { cv.width = w2; cv.height = h2; }
         var cx = cv.getContext('2d'); cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, W, H);
         cx.font = f2; cx.textBaseline = 'alphabetic'; cx.textAlign = 'center'; return cx;
       }
@@ -133,7 +134,7 @@
         for (var i = 0; i < letras.length; i++) { cx.fillText(letras[i], px + an[i] / 2 + (dx || 0), base + (dy || 0)); px += an[i] + esp; }
       }
       var xt = preparar(c);
-      c.style.width = W + 'px'; c.style.height = H + 'px';
+      if (c.style.width !== W + 'px') { c.style.width = W + 'px'; c.style.height = H + 'px'; }
       // Relleno: de blanco sólido (0 %) a vidrio translúcido con brillo arriba (100 %)
       var rel = xt.createLinearGradient(0, pad, 0, pad + alto);
       rel.addColorStop(0, 'rgba(255,255,255,' + (1 - 0.45 * g).toFixed(3) + ')');
@@ -154,21 +155,22 @@
     }
   }
   if (document.fonts && document.fonts.load) document.fonts.load('600 100px InterVar').then(function () { dibujarHora(horaDibujada || '', true); }, function () {});
-  function hms(d) { var h = d.getHours(); return (h % 12 === 0 ? 12 : h % 12) + ':' + dd(d.getMinutes()) + ':' + dd(d.getSeconds()); }
+  function hms(d) { var h = d.getHours(); return (h % 12 === 0 ? 12 : h % 12) + ':' + dd(d.getMinutes()) + (typeof ajustes === 'undefined' || ajustes.segundos ? ':' + dd(d.getSeconds()) : ''); }
   (function tic() { dibujarHora(hms(new Date()), false); setTimeout(tic, 1000 - (Date.now() % 1000) + 5); })();
 
   // ------------------------------------------------------------ Música: barra suave y tiempos
+  var RAYO = '<svg viewBox="0 0 12 18"><path d="M7.2 0L0.8 10.2h4.4L4 18l6.6-10.4H6.1z"/></svg>';
   var ICONO_PAUSA = '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>';
   var ICONO_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
   function minSeg(s) { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + dd(s % 60); }
   function avanzarMusica() {
     var m = (typeof D !== 'undefined' && D.musica) || (DATOS && DATOS.musica);
-    if (!m || !m.titulo || !m.dur) { $('m-avance').style.width = '0'; $('m-va').textContent = ''; $('m-falta').textContent = ''; return; }
+    if (!m || !m.titulo || !m.dur) { $('m-avance').style.width = '0'; texto('m-va', ''); texto('m-falta', ''); return; }
     var pos = m.pos + (m.sonando ? (Date.now() - m.leido) / 1000 : 0);
     pos = Math.min(pos, m.dur);
     $('m-avance').style.width = (pos / m.dur * 100).toFixed(2) + '%';
-    $('m-va').textContent = minSeg(pos);
-    $('m-falta').textContent = '-' + minSeg(m.dur - pos);
+    texto('m-va', minSeg(pos));
+    texto('m-falta', '-' + minSeg(m.dur - pos));
   }
   setInterval(avanzarMusica, 250);
 
@@ -194,41 +196,45 @@
 
   // ------------------------------------------------------------ Pintar
   // Cada sección se pinta con lo que haya; si falta un dato, se dice qué falta conectar.
-  function vacio(id, texto) { $(id).innerHTML = '<li class="vacio">' + esc(texto) + '</li>'; }
+  // Solo se toca la pantalla cuando algo cambió: así no parpadea.
+  var cache = {};
+  function poner(id, html) { if (cache['h' + id] === html) return; cache['h' + id] = html; $(id).innerHTML = html; }
+  function texto(id, t) { t = String(t); if (cache['t' + id] === t) return; cache['t' + id] = t; $(id).textContent = t; }
+  function vacio(id, t) { poner(id, '<li class="vacio">' + esc(t) + '</li>'); }
 
   function pintar(D) {
     var ahora = new Date();
-    $('fecha').textContent = DIAS[ahora.getDay()] + ', ' + ahora.getDate() + ' de ' + MESES[ahora.getMonth()];
+    texto('fecha', DIAS[ahora.getDay()] + ', ' + ahora.getDate() + ' de ' + MESES[ahora.getMonth()]);
 
     var c = D.clima;
     if (c) {
-      $('clima-icono').innerHTML = I[c.icono] || '';
-      $('clima-temp').textContent = c.temp + '°';
-      $('clima-texto').textContent = c.texto + ' · ' + c.ciudad;
-      $('clima-rango').textContent = c.max != null ? 'Máx. ' + c.max + '°  ·  Mín. ' + c.min + '°' : '';
-      $('horas').innerHTML = c.horas.map(function (x) { return '<li>' + esc(x.h) + icono(x.i) + '<b>' + x.t + '°</b></li>'; }).join('');
+      poner('clima-icono', I[c.icono] || '');
+      texto('clima-temp', c.temp + '°');
+      texto('clima-texto', c.texto + ' · ' + c.ciudad);
+      texto('clima-rango', c.max != null ? 'Máx. ' + c.max + '°  ·  Mín. ' + c.min + '°' : '');
+      poner('horas', c.horas.map(function (x) { return '<li>' + esc(x.h) + icono(x.i) + '<b>' + x.t + '°</b></li>'; }).join(''));
     }
 
     if (D.alarma) {
-      $('alarma-hora').textContent = hora12(D.alarma, true);
+      texto('alarma-hora', hora12(D.alarma, true));
       var manana = new Date(ahora); manana.setDate(manana.getDate() + 1);
       var dia = D.alarma.toDateString() === ahora.toDateString() ? 'Hoy' : D.alarma.toDateString() === manana.toDateString() ? 'Mañana' : DIAS[D.alarma.getDay()];
-      $('alarma-falta').textContent = dia + ' · ' + falta(D.alarma - ahora);
+      texto('alarma-falta', dia + ' · ' + falta(D.alarma - ahora));
     } else {
-      $('alarma-hora').textContent = '—';
-      $('alarma-falta').textContent = D.iphone ? 'Sin alarmas activas' : 'Falta el Atajo del iPhone';
+      texto('alarma-hora', '—');
+      texto('alarma-falta', D.iphone ? 'Sin alarmas activas' : 'Falta el Atajo del iPhone');
     }
 
     if (D.cuenta && D.cuenta.fecha) {
       var hoy0 = new Date(ahora); hoy0.setHours(0, 0, 0, 0);
       var diasA = function (f) { return Math.max(0, Math.round((f - hoy0) / 86400000)); };
       var corta = function (f) { return f.getDate() + ' de ' + MESES[f.getMonth()]; };
-      $('cuenta-titulo').textContent = D.cuenta.titulo;
-      $('cuenta-dias').textContent = diasA(D.cuenta.fecha);
-      $('cuenta-nota').textContent = corta(D.cuenta.fecha);
+      texto('cuenta-titulo', D.cuenta.titulo);
+      texto('cuenta-dias', diasA(D.cuenta.fecha));
+      texto('cuenta-nota', corta(D.cuenta.fecha));
       if (D.cuenta.clases) {
-        $('clases-dias').textContent = diasA(D.cuenta.clases);
-        $('clases-nota').textContent = corta(D.cuenta.clases) + ' · ICADE';
+        texto('clases-dias', diasA(D.cuenta.clases));
+        texto('clases-nota', corta(D.cuenta.clases) + ' · ICADE');
       }
     }
 
@@ -238,90 +244,104 @@
       var pasaron = D.eventos.filter(function (e) { return e.fin < ahora; });
       var visibles = pasaron.slice(Math.max(0, pasaron.length - Math.max(0, 3 - siguen.length))).concat(siguen).slice(0, 3);
       if (visibles.length) {
-        $('eventos').innerHTML = visibles.map(function (e) {
+        poner('eventos', visibles.map(function (e) {
           var clase = e.fin < ahora ? 'pasado' : (e.ini <= ahora ? 'ahora' : '');
           var pil = clase === 'ahora' ? '<span class="pildora">Ahora</span>' : '';
           var horario = e.todoElDia ? 'Todo el día' : hora12(e.ini, false) + ' – ' + hora12(e.fin, true);
           return '<li class="' + clase + '"><span class="color" style="background:' + (e.color || 'transparent') + '"></span><span class="cuando">' + (e.todoElDia ? 'Día' : hora12(e.ini, false)) + '</span>' +
             '<span class="que">' + esc(e.titulo) + pil + '<small>' + horario + (e.lugar ? ' · ' + esc(e.lugar) : '') + '</small></span></li>';
-        }).join('');
+        }).join(''));
       } else vacio('eventos', 'Nada en el calendario hoy');
-      $('hoy-resumen').textContent = siguen.length ? (siguen.length === 1 ? '1 por delante' : siguen.length + ' por delante') : 'Nada más hoy';
-      $('eventos-manana').innerHTML = (D.manana || []).slice(0, 2).map(function (e) {
+      texto('hoy-resumen', siguen.length ? (siguen.length === 1 ? '1 por delante' : siguen.length + ' por delante') : 'Nada más hoy');
+      poner('eventos-manana', (D.manana || []).slice(0, 2).map(function (e) {
         return '<li><span class="color" style="background:' + (e.color || 'transparent') + '"></span><span class="cuando">Mañana ' + (e.todoElDia ? '' : hora12(e.ini, false)) + '</span><span class="que">' + esc(e.titulo) + '</span></li>';
-      }).join('');
+      }).join(''));
     } else {
       var links = CONFIG.calendarios || (CONFIG.calendario ? [CONFIG.calendario] : []);
       vacio('eventos', !links.length ? 'Conecta tu calendario de iCloud' : D.errorCalendario ? 'No pude leer el calendario (' + D.errorCalendario + ')' : 'Cargando calendario…');
-      $('hoy-resumen').textContent = '';
-      $('eventos-manana').innerHTML = '';
+      texto('hoy-resumen', '');
+      poner('eventos-manana', '');
     }
 
     if (D.pendientes) {
       if (D.pendientes.length) {
-        $('pendientes').innerHTML = D.pendientes.slice(0, 3).map(function (p) {
+        poner('pendientes', D.pendientes.slice(0, 3).map(function (p) {
           return '<li><span class="punto-lista' + (p.urgente ? ' urgente' : '') + '"></span><span class="que">' + esc(p.titulo) +
             (p.vence ? '<span class="vence' + (p.urgente ? ' urgente' : '') + '">' + esc(p.vence) + '</span>' : '') + '</span></li>';
-        }).join('');
+        }).join(''));
       } else vacio('pendientes', 'Sin pendientes');
-      $('pend-resumen').textContent = D.pendientes.length ? D.pendientes.length + ' en total' : '';
+      texto('pend-resumen', D.pendientes.length ? D.pendientes.length + ' en total' : '');
     } else {
       vacio('pendientes', 'Falta el Atajo del iPhone');
-      $('pend-resumen').textContent = '';
+      texto('pend-resumen', '');
     }
 
     if (D.claude && D.claude.temas && D.claude.temas.length) {
-      $('claude-cuando').textContent = D.claude.cuando || '';
-      $('claude').innerHTML = D.claude.temas.slice(0, 3).map(function (t) {
+      texto('claude-cuando', D.claude.cuando || '');
+      poner('claude', D.claude.temas.slice(0, 3).map(function (t) {
         return '<li>' + esc(t.titulo) + '<small>' + esc(t.nota || '') + '</small></li>';
-      }).join('');
+      }).join(''));
     } else {
-      $('claude-cuando').textContent = '';
+      texto('claude-cuando', '');
       vacio('claude', 'Pronto: el resumen de tus chats');
     }
 
     var m = D.musica;
     if (m && m.titulo) {
-      $('t-musica').className = 'tarjeta' + (m.sonando ? '' : ' pausa');
-      $('m-lugar').textContent = 'Sonos · ' + (m.cuarto || 'Diego') + (m.sonando ? '' : ' · En pausa');
-      $('m-titulo').textContent = m.titulo;
-      $('m-artista').textContent = m.artista;
+      if ($('t-musica').className !== 'tarjeta' + (m.sonando ? '' : ' pausa')) $('t-musica').className = 'tarjeta' + (m.sonando ? '' : ' pausa');
+      texto('m-lugar', 'Sonos · ' + (m.cuarto || 'Diego') + (m.sonando ? '' : ' · En pausa'));
+      texto('m-titulo', m.titulo);
+      texto('m-artista', m.artista);
       if (m.portada && $('m-portada').getAttribute('src') !== m.portada) $('m-portada').src = m.portada;
-      $('m-portada').style.visibility = m.portada ? 'visible' : 'hidden';
-      $('m-pausa').innerHTML = m.sonando ? ICONO_PAUSA : ICONO_PLAY;
+      if ($('m-portada').style.visibility !== (m.portada ? 'visible' : 'hidden')) $('m-portada').style.visibility = m.portada ? 'visible' : 'hidden';
+      poner('m-pausa', m.sonando ? ICONO_PAUSA : ICONO_PLAY);
     } else {
-      $('t-musica').className = 'tarjeta pausa';
-      $('m-lugar').textContent = 'Sonos · ' + ((m && m.cuarto) || 'Diego');
-      $('m-titulo').textContent = 'Nada sonando';
-      $('m-artista').textContent = '';
-      $('m-portada').style.visibility = 'hidden';
-      $('m-pausa').innerHTML = ICONO_PLAY;
+      if ($('t-musica').className !== 'tarjeta pausa') $('t-musica').className = 'tarjeta pausa';
+      texto('m-lugar', 'Sonos · ' + ((m && m.cuarto) || 'Diego'));
+      texto('m-titulo', 'Nada sonando');
+      texto('m-artista', '');
+      if ($('m-portada').style.visibility !== 'hidden') $('m-portada').style.visibility = 'hidden';
+      poner('m-pausa', ICONO_PLAY);
     }
     avanzarMusica();
 
-    $('aparatos').innerHTML = (D.aparatos || []).map(function (a) {
+    poner('aparatos', (D.aparatos || []).map(function (a) {
+      var pila = '';
+      if (a.on && a.bateria != null) {
+        pila = '<span class="pila' + (a.carga ? ' cargando' : '') + (a.bateria <= 20 && !a.carga ? ' baja' : '') + '"><i style="width:' + Math.max(4, Math.min(100, a.bateria)) + '%"></i></span>' +
+          '<span class="texto">' + a.bateria + ' %</span>' + (a.carga ? '<span class="rayo">' + RAYO + '</span>' : '');
+      }
       return '<li class="' + (a.on ? 'on' : 'off') + '">' + icono(a.icono) +
-        '<div><div class="nombre">' + esc(a.nombre) + '</div><div class="estado"><span class="punto"></span><span class="texto">' + esc(a.estado) + '</span></div></div></li>';
-    }).join('');
+        '<div><div class="nombre">' + esc(a.nombre) + '</div><div class="estado"><span class="punto"></span>' +
+        (pila || '<span class="texto">' + esc(a.estado) + '</span>') + '</div></div></li>';
+    }).join(''));
 
-    $('pie-cambio').textContent = D.cambio || '';
-    $('pie-actualizado').textContent = D.actualizado ? 'Actualizado ' + hora12(D.actualizado, true) : '';
+    var SIM = { USD: '$', EUR: '€', GBP: '£' };
+    poner('pie-cambio', (D.divisas || []).map(function (d) {
+      var sube = d.cambio > 0.005, baja = d.cambio < -0.005;
+      var flecha = sube ? '<svg viewBox="0 0 10 10"><path d="M5 1.5L9 7.5H1z"/></svg>' : baja ? '<svg viewBox="0 0 10 10"><path d="M5 8.5L9 2.5H1z"/></svg>' : '<svg viewBox="0 0 10 10"><rect x="1.5" y="4.2" width="7" height="1.6" rx=".8"/></svg>';
+      return '<span class="divisa ' + (sube ? 'sube' : baja ? 'baja' : 'igual') + '"><span class="sim">' + SIM[d.k] + '</span><b>' + d.v.toFixed(2) + '</b>' +
+        '<span class="flecha">' + flecha + Math.abs(d.cambio).toFixed(2) + ' %</span></span>';
+    }).join(''));
+    texto('pie-actualizado', D.actualizado ? 'Actualizado ' + hora12(D.actualizado, true) : '');
   }
 
   // ------------------------------------------------------------ Ajustes (☰): brillo y vidrio líquido
-  var ajustes = { brillo: 100, liquido: 100, tamano: 94, v: 2 };
+  var ajustes = { brillo: 100, liquido: 100, tamano: 94, segundos: true, v: 2 };
   try {
     var g = JSON.parse(localStorage.getItem('centro.ajustes') || '{}');
     if (g.brillo != null) ajustes.brillo = g.brillo;
     if (g.liquido != null && g.v === 2) ajustes.liquido = g.liquido;
     if (g.tamano != null) ajustes.tamano = g.tamano;
+    if (typeof g.segundos === 'boolean') ajustes.segundos = g.segundos;
   } catch (e) {}
   function guardar() { try { localStorage.setItem('centro.ajustes', JSON.stringify(ajustes)); } catch (e) {} }
 
   var FILAS = [
     { clave: 'brillo', etiqueta: 'Brillo', min: 10, max: 100 },
     { clave: 'liquido', etiqueta: 'Vidrio líquido', min: 0, max: 100 },
-    { clave: 'tamano', etiqueta: 'Tamaño de pantalla', min: 70, max: 100, paso: 2 }
+    { clave: 'tamano', etiqueta: 'Tamaño de pantalla', min: 70, max: 100, paso: 2 },
+    { clave: 'segundos', etiqueta: 'Segundos en el reloj', sino: true }
   ];
   var panelAbierto = false, filaActiva = 0;
 
@@ -334,6 +354,10 @@
 
   function pintarPanel() {
     $('ajustes-lista').innerHTML = FILAS.map(function (f, i) {
+      if (f.sino) {
+        return '<li class="' + (i === filaActiva ? 'activo' : '') + '"><div class="fila-ajuste"><span>' + f.etiqueta + '</span>' +
+          '<span class="interruptor' + (ajustes[f.clave] ? ' on' : '') + '"><i></i></span></div></li>';
+      }
       var v = ajustes[f.clave], pct = (v - f.min) / (f.max - f.min) * 100;
       return '<li class="' + (i === filaActiva ? 'activo' : '') + '"><div class="fila-ajuste"><span>' + f.etiqueta + '</span><b>' + v + ' %</b></div>' +
         '<div class="barra"><i style="width:' + pct + '%"></i><b style="left:' + pct + '%"></b></div></li>';
@@ -347,6 +371,7 @@
   function cerrarPanel() { panelAbierto = false; $('ajustes').hidden = true; }
   function mover(dir) {
     var f = FILAS[filaActiva];
+    if (f.sino) { ajustes[f.clave] = !ajustes[f.clave]; guardar(); aplicarAjustes(); pintarPanel(); return; }
     ajustes[f.clave] = Math.max(f.min, Math.min(f.max, ajustes[f.clave] + dir * (f.paso || 10)));
     guardar(); aplicarAjustes(); pintarPanel();
   }
@@ -363,7 +388,8 @@
     else if (k === 'ArrowDown' || c === 40) { filaActiva = (filaActiva + 1) % FILAS.length; pintarPanel(); }
     else if (k === 'ArrowLeft' || c === 37) mover(-1);
     else if (k === 'ArrowRight' || c === 39) mover(1);
-    else if (k === 'Escape' || k === 'Enter' || c === 27 || c === 13) cerrarPanel();
+    else if (k === 'Enter' || c === 13) { if (FILAS[filaActiva].sino) mover(1); else cerrarPanel(); }
+    else if (k === 'Escape' || c === 27) cerrarPanel();
   });
 
   // ------------------------------------------------------------ Tamaño y giro
@@ -384,6 +410,8 @@
       var s2 = Math.min(W / 1080, H / 1920) * t;
       tr = 'translate(' + ((W - 1080 * s2) / 2) + 'px,' + ((H - 1920 * s2) / 2) + 'px) scale(' + s2 + ')';
     }
+    if (L.getAttribute('data-tr') === tr) return;
+    L.setAttribute('data-tr', tr);
     L.style.webkitTransform = tr; L.style.transform = tr;
   }
   window.addEventListener('load', acomodar);
@@ -477,11 +505,20 @@
     }).catch(function () {});
   }
 
-  // Tipo de cambio euro → peso (Frankfurter, datos del Banco Central Europeo, sin cuenta)
+  // Tipo de cambio: euro, libra y dólar en pesos, comparado con el día hábil anterior
+  // (Frankfurter, datos del Banco Central Europeo, sin cuenta)
   function actualizarCambio() {
-    pedir('https://api.frankfurter.app/latest?from=EUR&to=MXN').then(function (t) {
-      var r = JSON.parse(t);
-      if (r.rates && r.rates.MXN) { D.cambio = 'EUR 1 = MXN ' + r.rates.MXN.toFixed(2); repintar(); }
+    var desde = new Date(Date.now() - 12 * 86400000);
+    var f = desde.getFullYear() + '-' + dd(desde.getMonth() + 1) + '-' + dd(desde.getDate());
+    pedir('https://api.frankfurter.app/' + f + '..?from=MXN&to=EUR,GBP,USD').then(function (t) {
+      var r = JSON.parse(t), dias = Object.keys(r.rates || {}).sort();
+      if (dias.length < 1) return;
+      var hoyR = r.rates[dias[dias.length - 1]], ayerR = r.rates[dias[Math.max(0, dias.length - 2)]];
+      D.divisas = ['USD', 'EUR', 'GBP'].map(function (k) {
+        var hoyV = 1 / hoyR[k], ayerV = 1 / ayerR[k];
+        return { k: k, v: hoyV, cambio: (hoyV - ayerV) / ayerV * 100 };
+      });
+      repintar();
     }).catch(function () {});
   }
 
@@ -589,24 +626,32 @@
   }
   function armarAparatos() {
     var lista = [], ahora = Date.now();
+    function pct(v) { return v == null || v === '' ? null : Math.round(+v > 1 ? +v : +v * 100); }
+    function siCarga(v) { return v === true || v === 'true' || v === 1 || v === 'Sí' || v === 'Si' || v === 'Yes'; }
     var lap = leerJSON('laptop');
     var lapOn = !!lap && ahora - new Date(lap.enviado || 0) < 12 * 60000;
-    lista.push({ nombre: 'Laptop', icono: 'laptop', on: lapOn,
-      estado: lapOn ? (lap.cargando ? 'Cargando' : 'Con batería') + (lap.bateria != null ? ' · ' + lap.bateria + ' %' : '') : 'Sin conexión' });
+    lista.push({ nombre: 'Laptop', icono: 'laptop', on: lapOn, bateria: lapOn ? pct(lap.bateria) : null, carga: lapOn && siCarga(lap.cargando),
+      estado: lapOn ? '' : 'Sin conexión' });
+    var ipadDatos = leerJSON('ipad');
     var tele = leerJSON('tele');
     (CONFIG.aparatos || []).forEach(function (a) {
       var on = vivos[a.ip];
       var estado = on === undefined ? 'Revisando…' : on ? 'En línea' : 'Sin conexión';
       if (a.icono === 'tele' && on && tele && tele.obra) estado = tele.obra;
-      lista.push({ nombre: a.nombre, icono: a.icono || 'tele', on: on !== false, estado: estado });
+      var item = { nombre: a.nombre, icono: a.icono || 'tele', on: on !== false, estado: estado };
+      if (a.icono === 'tablet' && ipadDatos) {
+        var reciente = ahora - new Date(ipadDatos.enviado || 0) < 45 * 60000;
+        if (reciente) item.on = true;
+        if (item.on) { item.bateria = pct(ipadDatos.bateria); item.carga = siCarga(ipadDatos.cargando); item.estado = ''; }
+      }
+      lista.push(item);
     });
     var sOn = D.sonosEstado !== '' && D.sonosEstado != null;
     lista.push({ nombre: 'Sonos ' + (CONFIG.cuartoSonos || 'Diego'), icono: 'bocina', on: sOn || !D.sonosVisto,
       estado: !D.sonosVisto ? 'Buscando…' : !sOn ? 'Sin conexión' : D.sonosEstado === 'PLAYING' ? 'Sonando' : 'En pausa' });
     if (D.iphone) {
       var iOn = ahora - D.iphoneVisto < 3 * 3600000;
-      var b = D.iphone.bateria != null ? Math.round(+D.iphone.bateria > 1 ? +D.iphone.bateria : +D.iphone.bateria * 100) + ' % · ' : '';
-      lista.push({ nombre: 'iPhone', icono: 'telefono', on: iOn, estado: b + haceCuanto(D.iphoneVisto) });
+      lista.push({ nombre: 'iPhone', icono: 'telefono', on: iOn, bateria: pct(D.iphone.bateria), carga: siCarga(D.iphone.cargando), estado: '' });
     }
     D.aparatos = lista.slice(0, 6);
   }
@@ -634,7 +679,7 @@
     D.cuenta = { titulo: 'Madrid', fecha: vuelo, nota: 'Vuelo · 7 de enero', clases: clases };
     leerIphone(); leerClaude();
     actualizarClima(); setInterval(actualizarClima, 20 * 60000);
-    actualizarCambio(); setInterval(actualizarCambio, 6 * 3600000);
+    actualizarCambio(); setInterval(actualizarCambio, 2 * 3600000);
     actualizarCalendario(); setInterval(actualizarCalendario, 10 * 60000);
     actualizarSonos(); setInterval(actualizarSonos, 5000);
     actualizarPresencia(); setInterval(actualizarPresencia, 60000);

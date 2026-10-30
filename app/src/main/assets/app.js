@@ -295,10 +295,20 @@
   function colgar(o, img) {
     var siguiente = capa === 'a' ? 'b' : 'a';
     var marco = $('marco-' + siguiente);
-    $('img-' + siguiente).src = img.url;
+    var el = $('img-' + siguiente);
+    el.src = img.url;
     acomodar(marco, img.w, img.h);
     $('atm-' + siguiente).style.backgroundImage = 'url("' + img.url + '")';
+    // Solo se cambia cuando la imagen ya está lista para pintarse (evita el destello oscuro)
+    var hecho = false;
+    function cambiar() { if (hecho) return; hecho = true; mostrarCapa(o, marco, siguiente); }
+    if (el.decode) el.decode().then(cambiar, cambiar);
+    else if (el.complete) cambiar();
+    else { el.onload = cambiar; el.onerror = cambiar; }
+    setTimeout(cambiar, 4000);
+  }
 
+  function mostrarCapa(o, marco, siguiente) {
     marco.className = 'marco visible';
     $('atm-' + siguiente).className = 'capa visible';
     $('marco-' + capa).className = 'marco';
@@ -698,10 +708,16 @@
     var xm = preparar(mascara);
     xm.fillStyle = '#fff';
     escribir(xm, function (x, c, px, py) { x.fillText(c, px, py); });
-    var url = 'url(' + mascara.toDataURL('image/png') + ')';
+    var datos = mascara.toDataURL('image/png');
+    var url = 'url(' + datos + ')';
     var vidrio = $('hora-vidrio');
-    vidrio.style.width = W + 'px'; vidrio.style.height = H + 'px';
-    vidrio.style.webkitMaskImage = url; vidrio.style.maskImage = url;
+    // La máscara nueva se decodifica antes de ponerla, para que el reloj no desaparezca un instante
+    var previa = new Image();
+    previa.onload = function () {
+      vidrio.style.width = W + 'px'; vidrio.style.height = H + 'px';
+      vidrio.style.webkitMaskImage = url; vidrio.style.maskImage = url;
+    };
+    previa.src = datos;
     var reloj = $('reloj');
     // 0 % = blanco sólido · 50 % = vidrio esmerilado · 100 % = vidrio claro, casi transparente
     reloj.style.setProperty('--blur', (window.innerHeight * (0.018 - 0.013 * g)).toFixed(1) + 'px');

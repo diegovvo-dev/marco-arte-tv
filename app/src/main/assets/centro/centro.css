@@ -280,3 +280,36 @@ html, body { position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
 .cuenta-num { font-size: 46px; font-weight: 600; letter-spacing: -.02em; line-height: 1; min-width: 74px; color: #fff; }
 .cuenta-txt { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; font-size: 19px; color: rgba(255,255,255,.7); line-height: 1.25; }
 .cuenta-txt b { font-size: 21px; font-weight: 600; color: #fff; }
+
+/* Interruptor sí/no en ajustes */
+.interruptor { position: relative; width: 74px; height: 42px; border-radius: 21px; background: rgba(255,255,255,.18); -webkit-flex: none; flex: none;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.4); transition: background .25s ease; }
+.interruptor i { position: absolute; top: 4px; left: 4px; width: 34px; height: 34px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.4); transition: left .25s ease; }
+.interruptor.on { background: #34c759; }
+.interruptor.on i { left: 36px; }
+.fila-ajuste { -webkit-align-items: center; align-items: center; }
+
+/* Pila con rayo, como en el iPhone */
+.pila { position: relative; display: inline-block; width: 30px; height: 15px; border: 2px solid rgba(255,255,255,.75); border-radius: 4px; padding: 1.5px; -webkit-flex: none; flex: none; margin-right: 2px; }
+.pila::after { content: ""; position: absolute; right: -5px; top: 3.5px; width: 2.5px; height: 5px; border-radius: 0 1.5px 1.5px 0; background: rgba(255,255,255,.75); }
+.pila i { display: block; height: 100%; border-radius: 1.5px; background: #fff; }
+.pila.cargando i { background: #34c759; }
+.pila.baja i { background: #ff4d4d; }
+.rayo { display: inline-block; width: 11px; height: 17px; -webkit-flex: none; flex: none; }
+.rayo svg { width: 100%; height: 100%; fill: #fff; display: block; }
+#aparatos .estado { gap: 6px; }
+
+/* Divisas en el pie */
+#pie { -webkit-align-items: center; align-items: center; }
+#pie-cambio { display: -webkit-flex; display: flex; gap: 12px; }
+.divisa { display: -webkit-inline-flex; display: inline-flex; -webkit-align-items: center; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 20px;
+  background: radial-gradient(120% 100% at 50% -20%, rgba(255,255,255,.1), rgba(255,255,255,.025) 70%);
+  box-shadow: inset 0 1.5px 1px -0.5px rgba(255,255,255,.45), inset 0 -1px 1px -0.5px rgba(255,255,255,.15); font-variant-numeric: tabular-nums; }
+.divisa .sim { font-size: 20px; font-weight: 600; color: rgba(255,255,255,.75); }
+.divisa b { font-size: 22px; font-weight: 600; color: #fff; }
+.divisa .flecha { display: -webkit-inline-flex; display: inline-flex; -webkit-align-items: center; align-items: center; gap: 4px; font-size: 16px; font-weight: 600; }
+.divisa .flecha svg { width: 12px; height: 12px; }
+.divisa.sube .flecha { color: #34c759; } .divisa.sube .flecha svg { fill: #34c759; }
+.divisa.baja .flecha { color: #ff4d4d; } .divisa.baja .flecha svg { fill: #ff4d4d; }
+.divisa.igual .flecha { color: rgba(255,255,255,.6); } .divisa.igual .flecha svg { fill: rgba(255,255,255,.6); }
+#pie-actualizado { font-size: 16px; }
