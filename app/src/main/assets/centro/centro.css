@@ -170,3 +170,43 @@ body { font-family: var(--letra); -webkit-font-smoothing: antialiased; cursor: n
 #pie { margin-top: 0; }
 html, body { position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
 #ajustes-lista li.info .fila-ajuste + .fila-ajuste { margin-top: 10px; }
+
+/* =====================================================================
+   Versión 3: negro puro, texto blanco fuerte, sin efectos de fondo
+   ===================================================================== */
+#lienzo { background: #000 !important;
+  --texto: #ffffff; --suave: rgba(255,255,255,.86); --tenue: rgba(255,255,255,.62);
+  --linea: rgba(255,255,255,.12); --borde: rgba(255,255,255,.16); --acento: #cfe0ff; --alerta: #ff9a8a; --ok: #7ef0b8; }
+.tarjeta { background: rgba(255,255,255,.055) !important; border: 1px solid var(--borde); box-shadow: none; }
+.tarjeta::before { display: none; }
+.tarjeta h2 { color: rgba(255,255,255,.72); }
+#fecha { color: #fff; font-weight: 600; }
+#clima-ahora { color: rgba(255,255,255,.9); }
+#clima-rango { margin-top: 6px; font-size: 24px; font-weight: 500; color: rgba(255,255,255,.75); letter-spacing: .01em; }
+#horas li { color: rgba(255,255,255,.7); }
+#horas li .icono { color: #fff; }
+#alarma-hora { text-shadow: none; }
+#hora { margin-top: 4px; }
+#hora-texto { display: block; }
+
+/* Música con controles */
+#t-musica { gap: 22px; }
+#m-portada { width: 96px; height: 96px; }
+#m-linea { height: 6px; border-radius: 3px; background: rgba(255,255,255,.18); margin-top: 12px; }
+#m-avance { background: #fff; box-shadow: none; transition: width .25s linear; }
+#m-tiempos { display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between;
+  margin-top: 6px; font-size: 17px; font-weight: 500; color: rgba(255,255,255,.7); font-variant-numeric: tabular-nums; }
+#m-botones { display: -webkit-flex; display: flex; gap: 6px; -webkit-flex: none; flex: none; }
+#m-botones .boton { width: 60px; height: 60px; border-radius: 50%; display: -webkit-flex; display: flex;
+  -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; transition: background .25s ease, transform .25s ease; }
+#m-botones svg { width: 30px; height: 30px; fill: #fff; }
+#m-pausa svg { width: 38px; height: 38px; }
+#m-botones .boton.activo { background: rgba(255,255,255,.22); -webkit-transform: scale(1.1); transform: scale(1.1); }
+#t-musica.pausa #m-portada { opacity: .75; }
+
+/* Mi cuarto: en línea brillante; sin conexión, muy tenue y tachado */
+#aparatos li { transition: opacity .6s ease; }
+#aparatos li.on .nombre { color: #fff; }
+#aparatos li.on .icono { color: #fff; }
+#aparatos li.off { opacity: .28; }
+#aparatos li.off .nombre, #aparatos li.off .estado .texto { text-decoration: line-through; }

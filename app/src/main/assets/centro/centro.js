@@ -34,7 +34,7 @@
   function hoyA(h, m) { var d = new Date(); d.setHours(h, m || 0, 0, 0); return d; }
   function enDias(n, h, m) { var d = hoyA(h, m); d.setDate(d.getDate() + n); return d; }
   var EJEMPLO = {
-    clima: { temp: 17, texto: 'Casi despejado', icono: 'luna', ciudad: 'Ciudad de México',
+    clima: { temp: 17, max: 25, min: 11, texto: 'Casi despejado', icono: 'luna', ciudad: 'La Magdalena Contreras',
       horas: [{ h: 'Ahora', i: 'luna', t: 17 }, { h: '3 a. m.', i: 'luna', t: 15 }, { h: '6 a. m.', i: 'nube', t: 13 },
               { h: '9 a. m.', i: 'parcial', t: 17 }, { h: '12 p. m.', i: 'sol', t: 23 }, { h: '3 p. m.', i: 'sol', t: 25 }] },
     alarma: enDias(1, 7, 0),
@@ -59,14 +59,14 @@
       { titulo: 'Venta a restaurantes CDMX', nota: 'Guion de primer contacto' },
       { titulo: 'Intercambio en Madrid', nota: 'Sigue la cita de visa' }
     ] },
-    musica: { titulo: 'Vagabundo', artista: 'Sebastián Yatra, Manuel Turizo, Beéle', avance: 0.38, sonando: true, portada: '' },
+    musica: { titulo: 'Vagabundo', artista: 'Sebastián Yatra, Manuel Turizo, Beéle', pos: 83, dur: 215, leido: Date.now(), sonando: true, portada: '' },
     aparatos: [
       { nombre: 'Laptop', icono: 'laptop', on: true, estado: 'Cargando · 66 %' },
-      { nombre: 'Xbox', icono: 'consola', on: false, estado: 'Apagado' },
+      
       { nombre: 'Marco Arte', icono: 'tele', on: true, estado: 'Las bodas de Caná' },
       { nombre: 'Sonos Diego', icono: 'bocina', on: true, estado: 'Sonando' },
       { nombre: 'iPhone', icono: 'telefono', on: true, estado: 'En casa · 82 %' },
-      { nombre: 'iPad', icono: 'tablet', on: false, estado: 'Fuera del Wi‑Fi' }
+      { nombre: 'iPad', icono: 'tablet', on: false, estado: 'Sin conexión' }
     ],
     cambio: 'EUR 1 = MXN 21.48',
     actualizado: new Date()
@@ -89,59 +89,108 @@
   }
   function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
 
-  // ------------------------------------------------------------ Hora de vidrio líquido
-  // Igual que en la Sharp: una máscara con la forma de los números deja ver el fondo
-  // desenfocado, con sombra debajo y un borde de luz. LIQUIDO va de 0 (blanco) a 100 (vidrio claro).
-  var LIQUIDO = 70;
+  // ------------------------------------------------------------ Hora de vidrio líquido (con segundos)
+  // Sobre fondo negro el vidrio se dibuja directo: relleno blanco translúcido con brillo arriba
+  // y un borde de luz. LIQUIDO va de 0 (blanco sólido) a 100 (vidrio). Cada dígito ocupa
+  // el mismo ancho para que la hora no "baile" cuando cambian los segundos.
+  var LIQUIDO = 100;
   var horaDibujada = '';
-  var medidor = document.createElement('canvas');
+  var lienzoTmp = document.createElement('canvas');
   function dibujarHora(txt, forzar) {
     if (!forzar && txt === horaDibujada) return;
     horaDibujada = txt;
-    var g = LIQUIDO / 100, fs = 200, dpr = 2;
+    var g = LIQUIDO / 100, dpr = 1.5, fs = 190;
     var fuente = '600 ' + fs + 'px InterVar, "Helvetica Neue", Arial, sans-serif';
-    var m = medidor.getContext('2d'); m.font = fuente;
-    var espacio = -0.025 * fs, letras = txt.split('');
-    var anchos = letras.map(function (c) { return m.measureText(c).width; });
+    var c = $('hora-texto'), x = c.getContext('2d');
+    x.font = fuente;
+    var celda = 0;
+    for (var d = 0; d <= 9; d++) celda = Math.max(celda, x.measureText(String(d)).width);
+    var dosp = x.measureText(':').width;
+    var letras = txt.split(''), espacio = -0.02 * fs;
+    var anchos = letras.map(function (ch) { return ch === ':' ? dosp : celda; });
     var total = anchos.reduce(function (a, b) { return a + b; }, 0) + espacio * (letras.length - 1);
-    var pad = Math.round(fs * 0.14), alto = Math.round(fs * 0.74);
-    var W = Math.ceil(total + pad * 2), H = alto + pad * 2, base = pad + alto;
-    function preparar(c) {
-      c.width = W * dpr; c.height = H * dpr; c.style.width = W + 'px'; c.style.height = H + 'px';
-      var x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H);
-      x.font = fuente; x.textBaseline = 'alphabetic'; return x;
-    }
-    function escribir(x, dx, dy) {
-      var px = pad;
-      for (var i = 0; i < letras.length; i++) { x.fillText(letras[i], px + (dx || 0), base + (dy || 0)); px += anchos[i] + espacio; }
-    }
-    var mascara = document.createElement('canvas'), xm = preparar(mascara);
-    xm.fillStyle = '#fff'; escribir(xm);
-    var url = 'url(' + mascara.toDataURL('image/png') + ')';
-    var v = $('hora-vidrio');
-    v.style.width = W + 'px'; v.style.height = H + 'px';
-    v.style.webkitMaskImage = url; v.style.maskImage = url;
-    var r = $('hora');
-    r.style.setProperty('--blur', (26 - 10 * g).toFixed(1) + 'px');
-    r.style.setProperty('--brillo', (1.38 - 0.24 * g).toFixed(2));
-    r.style.setProperty('--tinte', (0.03 + 0.2 * (1 - g)).toFixed(3));
-    var xs = preparar($('hora-sombra'));
-    // Las sombras del canvas no se escalan con setTransform: van en pixeles reales.
-    xs.shadowColor = 'rgba(0,0,0,' + (0.22 + 0.2 * g).toFixed(2) + ')'; xs.shadowBlur = fs * 0.09 * dpr; xs.shadowOffsetY = fs * 0.02 * dpr;
-    xs.shadowOffsetX = 10000 * dpr; xs.fillStyle = '#000'; escribir(xs, -10000, 0);
-    var xt = preparar($('hora-texto'));
-    xt.fillStyle = 'rgba(255,255,255,' + (1 - g).toFixed(3) + ')'; escribir(xt);
-    var aBorde = 0.2 + 0.8 * g, grosor = Math.max(1, fs * (0.007 + 0.007 * g));
-    function filo(dx, dy, alfa) {
-      var c = document.createElement('canvas'), x = preparar(c);
-      x.fillStyle = 'rgba(255,255,255,' + alfa.toFixed(3) + ')'; escribir(x);
-      x.globalCompositeOperation = 'destination-out'; x.fillStyle = '#000'; escribir(x, dx, dy);
-      xt.drawImage(c, 0, 0, W, H);
-    }
-    filo(0, grosor, aBorde); filo(0, -grosor, aBorde * 0.55); filo(grosor, 0, aBorde * 0.4); filo(-grosor, 0, aBorde * 0.4);
-  }
-  if (document.fonts && document.fonts.load) document.fonts.load('600 100px InterVar').then(function () { dibujarHora(horaDibujada || hora12(new Date(), false), true); }, function () {});
+    // Que quepa en el ancho de la pantalla
+    var maxAncho = 900;
+    if (total > maxAncho) { var k = maxAncho / total; fs = Math.floor(fs * k); return dibujarConTam(fs); }
+    return dibujarConTam(fs);
 
+    function dibujarConTam(fs2) {
+      var f2 = '600 ' + fs2 + 'px InterVar, "Helvetica Neue", Arial, sans-serif';
+      x.font = f2;
+      var cel = 0; for (var d2 = 0; d2 <= 9; d2++) cel = Math.max(cel, x.measureText(String(d2)).width);
+      var dp = x.measureText(':').width, esp = -0.02 * fs2;
+      var an = letras.map(function (ch) { return ch === ':' ? dp : cel; });
+      var tot = an.reduce(function (a, b) { return a + b; }, 0) + esp * (letras.length - 1);
+      var pad = Math.round(fs2 * 0.1), alto = Math.round(fs2 * 0.74);
+      var W = Math.ceil(tot + pad * 2), H = alto + pad * 2, base = pad + alto;
+      function preparar(cv) {
+        cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+        var cx = cv.getContext('2d'); cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, W, H);
+        cx.font = f2; cx.textBaseline = 'alphabetic'; cx.textAlign = 'center'; return cx;
+      }
+      function escribir(cx, dx, dy) {
+        var px = pad;
+        for (var i = 0; i < letras.length; i++) { cx.fillText(letras[i], px + an[i] / 2 + (dx || 0), base + (dy || 0)); px += an[i] + esp; }
+      }
+      var xt = preparar(c);
+      c.style.width = W + 'px'; c.style.height = H + 'px';
+      // Relleno: de blanco sólido (0 %) a vidrio translúcido con brillo arriba (100 %)
+      var rel = xt.createLinearGradient(0, pad, 0, pad + alto);
+      rel.addColorStop(0, 'rgba(255,255,255,' + (1 - 0.45 * g).toFixed(3) + ')');
+      rel.addColorStop(0.5, 'rgba(255,255,255,' + (1 - 0.78 * g).toFixed(3) + ')');
+      rel.addColorStop(1, 'rgba(255,255,255,' + (1 - 0.62 * g).toFixed(3) + ')');
+      xt.fillStyle = rel; escribir(xt);
+      // Borde de luz: la forma menos la misma forma movida un poco (sin líneas internas)
+      var grosor = Math.max(1.2, fs2 * (0.008 + 0.008 * g));
+      function filo(dx, dy, alfa) {
+        var t = preparar(lienzoTmp);
+        t.fillStyle = 'rgba(255,255,255,' + alfa.toFixed(3) + ')'; escribir(t);
+        t.globalCompositeOperation = 'destination-out'; t.fillStyle = '#000'; escribir(t, dx, dy);
+        t.globalCompositeOperation = 'source-over';
+        xt.setTransform(1, 0, 0, 1, 0, 0); xt.drawImage(lienzoTmp, 0, 0); xt.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      var aB = 0.35 + 0.65 * g;
+      filo(0, grosor, aB); filo(0, -grosor, aB * 0.6); filo(grosor, 0, aB * 0.45); filo(-grosor, 0, aB * 0.45);
+    }
+  }
+  if (document.fonts && document.fonts.load) document.fonts.load('600 100px InterVar').then(function () { dibujarHora(horaDibujada || '', true); }, function () {});
+  function hms(d) { var h = d.getHours(); return (h % 12 === 0 ? 12 : h % 12) + ':' + dd(d.getMinutes()) + ':' + dd(d.getSeconds()); }
+  (function tic() { dibujarHora(hms(new Date()), false); setTimeout(tic, 1000 - (Date.now() % 1000) + 5); })();
+
+  // ------------------------------------------------------------ Música: barra suave y tiempos
+  var ICONO_PAUSA = '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>';
+  var ICONO_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
+  function minSeg(s) { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + dd(s % 60); }
+  function avanzarMusica() {
+    var m = (typeof D !== 'undefined' && D.musica) || (DATOS && DATOS.musica);
+    if (!m || !m.titulo || !m.dur) { $('m-avance').style.width = '0'; $('m-va').textContent = ''; $('m-falta').textContent = ''; return; }
+    var pos = m.pos + (m.sonando ? (Date.now() - m.leido) / 1000 : 0);
+    pos = Math.min(pos, m.dur);
+    $('m-avance').style.width = (pos / m.dur * 100).toFixed(2) + '%';
+    $('m-va').textContent = minSeg(pos);
+    $('m-falta').textContent = '-' + minSeg(m.dur - pos);
+  }
+  setInterval(avanzarMusica, 250);
+
+  // Control de la Sonos con ⏪ ⏯ ⏩ del control (la app de Android manda estas teclas aquí)
+  function iluminar(id) { var b = $(id); b.className = 'boton activo'; setTimeout(function () { b.className = 'boton'; }, 350); }
+  var esperandoSonos = false;
+  function ordenSonos(accion) {
+    iluminar(accion === 'pausa' ? 'm-pausa' : accion === 'siguiente' ? 'm-siguiente' : 'm-anterior');
+    if (!(window.Android && Android.sonos) || esperandoSonos) return;
+    esperandoSonos = true;
+    setTimeout(function () { esperandoSonos = false; }, 8000);
+    var m = typeof D !== 'undefined' && D.musica;
+    if (accion === 'pausa' && m && m.titulo) {   // se ve al instante; la bocina confirma después
+      m.pos = m.pos + (m.sonando ? (Date.now() - m.leido) / 1000 : 0); m.leido = Date.now(); m.sonando = !m.sonando;
+      pintar(D);
+    }
+    Android.sonos(accion === 'pausa' ? 'alternar' : accion, CONFIG.cuartoSonos || 'Diego');
+  }
+  window.alSonos = function () { esperandoSonos = false; setTimeout(actualizarSonos, 400); setTimeout(actualizarSonos, 1500); };
+  window.alPausa = function () { ordenSonos('pausa'); };
+  window.alSiguiente = function () { ordenSonos('siguiente'); };
+  window.alAnterior = function () { ordenSonos('anterior'); };
 
   // ------------------------------------------------------------ Pintar
   // Cada sección se pinta con lo que haya; si falta un dato, se dice qué falta conectar.
@@ -150,13 +199,13 @@
   function pintar(D) {
     var ahora = new Date();
     $('fecha').textContent = DIAS[ahora.getDay()] + ', ' + ahora.getDate() + ' de ' + MESES[ahora.getMonth()];
-    dibujarHora(hora12(ahora, false), false);
 
     var c = D.clima;
     if (c) {
       $('clima-icono').innerHTML = I[c.icono] || '';
       $('clima-temp').textContent = c.temp + '°';
       $('clima-texto').textContent = c.texto + ' · ' + c.ciudad;
+      $('clima-rango').textContent = c.max != null ? 'Máx. ' + c.max + '°  ·  Mín. ' + c.min + '°' : '';
       $('horas').innerHTML = c.horas.map(function (x) { return '<li>' + esc(x.h) + icono(x.i) + '<b>' + x.t + '°</b></li>'; }).join('');
     }
 
@@ -233,17 +282,18 @@
       $('m-lugar').textContent = 'Sonos · ' + (m.cuarto || 'Diego') + (m.sonando ? '' : ' · En pausa');
       $('m-titulo').textContent = m.titulo;
       $('m-artista').textContent = m.artista;
-      $('m-avance').style.width = Math.round(Math.min(1, m.avance || 0) * 100) + '%';
       if (m.portada && $('m-portada').getAttribute('src') !== m.portada) $('m-portada').src = m.portada;
       $('m-portada').style.visibility = m.portada ? 'visible' : 'hidden';
+      $('m-pausa').innerHTML = m.sonando ? ICONO_PAUSA : ICONO_PLAY;
     } else {
       $('t-musica').className = 'tarjeta pausa';
       $('m-lugar').textContent = 'Sonos · ' + ((m && m.cuarto) || 'Diego');
       $('m-titulo').textContent = 'Nada sonando';
       $('m-artista').textContent = '';
-      $('m-avance').style.width = '0';
       $('m-portada').style.visibility = 'hidden';
+      $('m-pausa').innerHTML = ICONO_PLAY;
     }
+    avanzarMusica();
 
     $('aparatos').innerHTML = (D.aparatos || []).map(function (a) {
       return '<li class="' + (a.on ? 'on' : 'off') + '">' + icono(a.icono) +
@@ -255,11 +305,11 @@
   }
 
   // ------------------------------------------------------------ Ajustes (☰): brillo y vidrio líquido
-  var ajustes = { brillo: 100, liquido: 70, tamano: 94 };
+  var ajustes = { brillo: 100, liquido: 100, tamano: 94, v: 2 };
   try {
     var g = JSON.parse(localStorage.getItem('centro.ajustes') || '{}');
     if (g.brillo != null) ajustes.brillo = g.brillo;
-    if (g.liquido != null) ajustes.liquido = g.liquido;
+    if (g.liquido != null && g.v === 2) ajustes.liquido = g.liquido;
     if (g.tamano != null) ajustes.tamano = g.tamano;
   } catch (e) {}
   function guardar() { try { localStorage.setItem('centro.ajustes', JSON.stringify(ajustes)); } catch (e) {} }
@@ -275,7 +325,7 @@
     $('velo').style.opacity = (Math.min(0.9, 1 - ajustes.brillo / 100)).toFixed(2);
     LIQUIDO = ajustes.liquido;
     acomodar();
-    dibujarHora(horaDibujada || hora12(new Date(), false), true);
+    dibujarHora(hms(new Date()), true);
   }
 
   function pintarPanel() {
@@ -341,7 +391,7 @@
   // ------------------------------------------------------------ Datos reales
   // En la tele (window.Android existe) se usan datos reales; en una vista previa, los de ejemplo.
   var REAL = !!window.Android;
-  var CONFIG = { ciudad: { nombre: 'Ciudad de México', lat: 19.4326, lon: -99.1332 }, cuartoSonos: 'Diego', aparatos: [] };
+  var CONFIG = { ciudad: { nombre: 'La Magdalena Contreras', lat: 19.3075, lon: -99.2425 }, cuartoSonos: 'Diego', aparatos: [] };
   function leerJSON(nombre) {
     try { var t = window.Android && Android.leer(nombre); return t ? JSON.parse(t) : null; } catch (e) { return null; }
   }
@@ -402,7 +452,7 @@
   function actualizarClima() {
     var c = CONFIG.ciudad;
     pedir('https://api.open-meteo.com/v1/forecast?latitude=' + c.lat + '&longitude=' + c.lon +
-      '&current=temperature_2m,weather_code,is_day&hourly=temperature_2m,weather_code,is_day&timezone=auto&forecast_days=2').then(function (t) {
+      '&current=temperature_2m,weather_code,is_day&hourly=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=2').then(function (t) {
       var r = JSON.parse(t), ahora = new Date(), horas = [];
       horas.push({ h: 'Ahora', i: iconoClima(r.current.weather_code, r.current.is_day), t: Math.round(r.current.temperature_2m) });
       for (var k = 0; k < r.hourly.time.length && horas.length < 6; k++) {
@@ -411,7 +461,7 @@
         if (horas.length > 1 && (d - horas[horas.length - 1].d) < 3 * 3600000) continue;
         horas.push({ h: horaCorta(d), i: iconoClima(r.hourly.weather_code[k], r.hourly.is_day[k]), t: Math.round(r.hourly.temperature_2m[k]), d: d });
       }
-      D.clima = { temp: Math.round(r.current.temperature_2m), texto: textoClima(r.current.weather_code), icono: iconoClima(r.current.weather_code, r.current.is_day), ciudad: c.nombre, horas: horas };
+      D.clima = { max: Math.round(r.daily.temperature_2m_max[0]), min: Math.round(r.daily.temperature_2m_min[0]), temp: Math.round(r.current.temperature_2m), texto: textoClima(r.current.weather_code), icono: iconoClima(r.current.weather_code, r.current.is_day), ciudad: c.nombre, horas: horas };
       repintar();
     }).catch(function () {});
   }
@@ -502,11 +552,12 @@
   window.alSonosInfo = function (t) {
     sonosPidiendo = false;
     var j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {}
-    if (!j || !j.titulo) { D.musica = { cuarto: CONFIG.cuartoSonos, titulo: '' }; D.sonosEstado = j ? j.estado : ''; }
+    D.sonosVisto = true;
+    if (!j || !j.titulo) { D.musica = { cuarto: CONFIG.cuartoSonos, titulo: '' }; D.sonosEstado = j ? (j.estado || 'STOPPED') : ''; }
     else {
       D.sonosEstado = j.estado;
       D.musica = { cuarto: CONFIG.cuartoSonos, titulo: j.titulo, artista: j.artista, portada: j.portada,
-        sonando: j.estado === 'PLAYING' || j.estado === 'TRANSITIONING', avance: j.dur ? j.pos / j.dur : 0 };
+        sonando: j.estado === 'PLAYING' || j.estado === 'TRANSITIONING', pos: j.pos || 0, dur: j.dur || 0, leido: Date.now() };
     }
     repintar();
   };
@@ -527,24 +578,24 @@
   function armarAparatos() {
     var lista = [], ahora = Date.now();
     var lap = leerJSON('laptop');
-    if (lap) {
-      var reciente = ahora - new Date(lap.enviado || 0) < 15 * 60000;
-      lista.push({ nombre: 'Laptop', icono: 'laptop', on: reciente,
-        estado: reciente ? (lap.cargando ? 'Cargando' : 'Con batería') + (lap.bateria != null ? ' · ' + lap.bateria + ' %' : '') : 'Apagada o dormida' });
-    }
-    if (D.iphone) {
-      var b = D.iphone.bateria != null ? Math.round(+D.iphone.bateria > 1 ? +D.iphone.bateria : +D.iphone.bateria * 100) + ' % · ' : '';
-      lista.push({ nombre: 'iPhone', icono: 'telefono', on: ahora - D.iphoneVisto < 3 * 3600000, estado: b + haceCuanto(D.iphoneVisto) });
-    }
-    lista.push({ nombre: 'Sonos ' + (CONFIG.cuartoSonos || 'Diego'), icono: 'bocina', on: D.sonosEstado === 'PLAYING',
-      estado: D.sonosEstado === 'PLAYING' ? 'Sonando' : D.sonosEstado ? 'En pausa' : 'Buscando…' });
+    var lapOn = !!lap && ahora - new Date(lap.enviado || 0) < 12 * 60000;
+    lista.push({ nombre: 'Laptop', icono: 'laptop', on: lapOn,
+      estado: lapOn ? (lap.cargando ? 'Cargando' : 'Con batería') + (lap.bateria != null ? ' · ' + lap.bateria + ' %' : '') : 'Sin conexión' });
     var tele = leerJSON('tele');
     (CONFIG.aparatos || []).forEach(function (a) {
       var on = vivos[a.ip];
-      var estado = on === undefined ? 'Revisando…' : on ? 'Encendido' : 'Apagado';
+      var estado = on === undefined ? 'Revisando…' : on ? 'En línea' : 'Sin conexión';
       if (a.icono === 'tele' && on && tele && tele.obra) estado = tele.obra;
-      lista.push({ nombre: a.nombre, icono: a.icono || 'tele', on: !!on, estado: estado });
+      lista.push({ nombre: a.nombre, icono: a.icono || 'tele', on: on !== false, estado: estado });
     });
+    var sOn = D.sonosEstado !== '' && D.sonosEstado != null;
+    lista.push({ nombre: 'Sonos ' + (CONFIG.cuartoSonos || 'Diego'), icono: 'bocina', on: sOn || !D.sonosVisto,
+      estado: !D.sonosVisto ? 'Buscando…' : !sOn ? 'Sin conexión' : D.sonosEstado === 'PLAYING' ? 'Sonando' : 'En pausa' });
+    if (D.iphone) {
+      var iOn = ahora - D.iphoneVisto < 3 * 3600000;
+      var b = D.iphone.bateria != null ? Math.round(+D.iphone.bateria > 1 ? +D.iphone.bateria : +D.iphone.bateria * 100) + ' % · ' : '';
+      lista.push({ nombre: 'iPhone', icono: 'telefono', on: iOn, estado: b + haceCuanto(D.iphoneVisto) });
+    }
     D.aparatos = lista.slice(0, 6);
   }
 
