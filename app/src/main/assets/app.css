@@ -77,22 +77,6 @@ body { font-family: var(--texto); -webkit-font-smoothing: antialiased; cursor: n
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 #obra-credito { margin-top: 1.6vh; padding-top: 1.2vh; border-top: 1px solid rgba(36,34,30,.18); font-size: 1.45vh; letter-spacing: .05em; color: var(--gris-papel); }
 
-/* ---------- Estilo Inmersivo ---------- */
-#app.inmersivo { background: #0d0d0c; }
-#app.inmersivo #atmosfera { display: block; }
-#app.inmersivo #columna { position: absolute; left: 3.5vw; bottom: 4.5vh; width: auto; height: auto; padding: 0; display: block;
-  text-shadow: 0 .3vh 2vh rgba(0,0,0,.75); }
-#app.inmersivo #hora { font-size: 10vh; }
-#app.inmersivo #clima { border-top: 0; margin-top: 1.2vh; padding-top: 0; }
-#app.inmersivo #clima-temp { display: inline; font-size: 2.6vh; font-family: var(--texto); margin-right: .8vw; }
-#app.inmersivo #clima-texto, #app.inmersivo #clima-rango { display: inline; }
-#app.inmersivo #clima-rango { margin-left: .8vw; }
-#app.inmersivo #cartela { background: transparent; box-shadow: none; padding: 0; margin-top: 2vh; color: var(--tinta-pared); max-width: 40vw; }
-#app.inmersivo #obra-titulo { font-size: 2.8vh; -webkit-line-clamp: 1; }
-#app.inmersivo #obra-artista { margin-top: .4vh; font-size: 1.8vh; -webkit-line-clamp: 1; color: var(--tinta-suave); font-weight: 400; }
-#app.inmersivo #obra-fecha, #app.inmersivo #obra-tecnica, #app.inmersivo #obra-credito { display: none; }
-#app.inmersivo .marco { border-width: 0; box-shadow: 0 2vh 6vh rgba(0,0,0,.6); }
-
 /* ---------- Noche ---------- */
 #noche { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 4s ease; }
 #noche.activa { opacity: .6; }
@@ -126,7 +110,81 @@ body { font-family: var(--texto); -webkit-font-smoothing: antialiased; cursor: n
   .marco, #atmosfera .capa, #cartela, #aviso, #noche { transition: none; }
 }
 
-/* Sombra detrás del texto en Inmersivo para que se lea sobre pinturas claras */
-#app.inmersivo #sala::after { content: ""; position: absolute; left: 0; bottom: 0; width: 62%; height: 52%; pointer-events: none;
-  background: radial-gradient(ellipse 90% 90% at 0% 100%, rgba(0,0,0,.72), rgba(0,0,0,.35) 45%, transparent 75%); }
-#app.inmersivo #columna { z-index: 2; }
+/* =====================================================================
+   Pantalla completa con paneles de vidrio líquido (estilo predeterminado)
+   ===================================================================== */
+#app.vidrio { background: #0b0b0b; }
+#app.vidrio #sala { display: block; }
+#app.vidrio #lienzo { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+#app.vidrio .marco { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; border: 0; box-shadow: none; }
+#app.vidrio .marco img { object-fit: cover; }
+#app.vidrio.completa #atmosfera { display: block; }
+#app.vidrio.completa .marco img { object-fit: contain; }
+#app.vidrio #espera .espera-titulo { color: #fff; }
+#app.vidrio #columna { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: auto; height: auto; padding: 0; display: block; pointer-events: none; z-index: 2; }
+
+/* El vidrio: desenfoca lo que hay detrás, con brillo en el borde superior
+   y un reflejo suave, como una lámina curva sobre la pintura. */
+#app.vidrio #hora-bloque, #app.vidrio #cartela, #aviso, .ajustes-caja {
+  color: #fff;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.07) 42%, rgba(255,255,255,.03) 60%, rgba(255,255,255,.12) 100%),
+    rgba(16,18,24,.24);
+  border: 1px solid rgba(255,255,255,.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.6),
+    inset 1px 0 0 rgba(255,255,255,.18),
+    inset 0 -1px 0 rgba(255,255,255,.12),
+    inset 0 0 4vh rgba(255,255,255,.05),
+    0 2.4vh 6vh rgba(0,0,0,.32), 0 .4vh 1.2vh rgba(0,0,0,.18);
+  -webkit-backdrop-filter: blur(28px) saturate(175%) brightness(1.04);
+  backdrop-filter: blur(28px) saturate(175%) brightness(1.04);
+  text-shadow: 0 .1vh .4vh rgba(0,0,0,.35), 0 .2vh 1.6vh rgba(0,0,0,.35);
+  overflow: hidden;
+}
+#app.vidrio #hora-bloque::before, #app.vidrio #cartela::before, .ajustes-caja::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 52%; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,.20), rgba(255,255,255,0));
+}
+#app.vidrio #hora-bloque > *, #app.vidrio #cartela > *, .ajustes-caja > * { position: relative; }
+
+/* Respaldo si el navegador de la tele no sabe desenfocar */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  #app.vidrio #hora-bloque, #app.vidrio #cartela, #aviso, .ajustes-caja { background: rgba(26,26,28,.62); }
+}
+
+/* Hora y clima: arriba a la derecha */
+#app.vidrio #hora-bloque { position: absolute; top: 5vh; right: 3.2vw; padding: 2.4vh 2vw 2.2vh; border-radius: 3.4vh; min-width: 22vw; }
+#app.vidrio #hora { font-size: 11vh; color: #fff; }
+#app.vidrio #hora-ampm { color: rgba(255,255,255,.82); }
+#app.vidrio #fecha { margin-top: 1.4vh; color: rgba(255,255,255,.86); font-size: 2vh; }
+#app.vidrio #clima { margin-top: 1.8vh; padding-top: 1.6vh; border-top: 1px solid rgba(255,255,255,.24); color: #fff; font-size: 2vh; }
+#app.vidrio #clima-temp { display: inline; font-family: var(--texto); font-weight: 500; font-size: 3vh; margin-right: .7vw; }
+#app.vidrio #clima-texto { display: inline; }
+#app.vidrio #clima-rango { color: rgba(255,255,255,.78); margin-top: .3vh; }
+
+/* Información de la obra: abajo a la izquierda */
+#app.vidrio #cartela { position: absolute; left: 3.2vw; bottom: 5vh; max-width: 34vw; padding: 2.4vh 2vw 2.2vh; border-radius: 3.4vh; }
+#app.vidrio #obra-titulo { color: #fff; font-size: 3.6vh; }
+#app.vidrio #obra-artista { color: #fff; }
+#app.vidrio #obra-fecha, #app.vidrio #obra-tecnica, #app.vidrio #obra-credito { color: rgba(255,255,255,.8); }
+#app.vidrio #obra-credito { border-top-color: rgba(255,255,255,.24); }
+
+/* Aviso y ajustes también en vidrio */
+#aviso { border-radius: 100vh; padding: 1.4vh 2.4vw; }
+#aviso b { color: #fff; }
+#ajustes { background: rgba(0,0,0,.25); }
+.ajustes-caja { top: 4vh; right: 2.5vw; bottom: 4vh; width: 38vw; border-radius: 3.6vh; padding: 5vh 2.4vw 4vh; }
+.ajustes-caja h2 { color: #fff; }
+#ajustes-lista li { color: rgba(255,255,255,.78); border-left: 0; border-radius: 1.8vh; }
+#ajustes-lista li .valor { color: #fff; }
+#ajustes-lista li.activo { background: rgba(255,255,255,.18); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.35); }
+#ajustes-lista li.activo .flecha { color: #fff; }
+#ajustes-lista li.boton { border-color: rgba(255,255,255,.3); }
+#ajustes-lista li.boton.activo { border-color: rgba(255,255,255,.7); }
+.ajustes-ayuda { color: rgba(255,255,255,.75); }
+.ajustes-ayuda b { color: #fff; }
+
+#aviso { z-index: 4; }
+#ajustes { z-index: 5; }
+#noche { z-index: 6; }

@@ -50,7 +50,8 @@
       { v: 1, t: '1 minuto' }, { v: 5, t: '5 minutos' }, { v: 15, t: '15 minutos' }, { v: 30, t: '30 minutos' },
       { v: 60, t: '1 hora' }, { v: 180, t: '3 horas' }, { v: 1440, t: '1 día' }] },
     { clave: 'ciudad', etiqueta: 'Clima de', opciones: CIUDADES.map(function (c, i) { return { v: i, t: c.nombre }; }) },
-    { clave: 'estilo', etiqueta: 'Estilo', opciones: [{ v: 'galeria', t: 'Galería' }, { v: 'inmersivo', t: 'Inmersivo' }] },
+    { clave: 'estilo', etiqueta: 'Estilo', opciones: [{ v: 'vidrio', t: 'Pantalla completa' }, { v: 'galeria', t: 'Galería' }] },
+    { clave: 'ajuste', etiqueta: 'La obra', opciones: [{ v: 'llenar', t: 'Llenar la pantalla' }, { v: 'completa', t: 'Verla entera' }] },
     { clave: 'formato24', etiqueta: 'Hora', opciones: [{ v: false, t: '12 h (a. m. / p. m.)' }, { v: true, t: '24 h' }] },
     { clave: 'mezclarFavoritas', etiqueta: 'Mis favoritas de vez en cuando', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
     { clave: 'horizontales', etiqueta: 'Solo obras horizontales', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
@@ -58,7 +59,7 @@
     { clave: 'cerrar', etiqueta: 'Cerrar', boton: true }
   ];
 
-  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'galeria', formato24: false, horizontales: true, noche: true, mezclarFavoritas: true };
+  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'vidrio', ajuste: 'llenar', formato24: false, horizontales: true, noche: true, mezclarFavoritas: true };
 
   var DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
   var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -90,10 +91,13 @@
     try {
       var g = JSON.parse(localStorage.getItem('marcoArte.ajustes') || '{}');
       for (k in g) if (k in a) a[k] = g[k];
+      // Versión 2: el estilo nuevo de pantalla completa es el de fábrica.
+      if (g.version !== 2) a.estilo = 'vidrio';
     } catch (e) { /* sin almacenamiento: se usan los valores de fábrica */ }
     return a;
   }
   function guardarAjustes() {
+    ajustes.version = 2;
     try { localStorage.setItem('marcoArte.ajustes', JSON.stringify(ajustes)); } catch (e) { /* nada */ }
   }
   function coleccionActual() {
@@ -479,7 +483,7 @@
       programar();
     } else if (clave === 'ciudad') {
       actualizarClima();
-    } else if (clave === 'estilo') {
+    } else if (clave === 'estilo' || clave === 'ajuste') {
       aplicarEstilo();
     } else if (clave === 'formato24' || clave === 'noche') {
       actualizarReloj();
@@ -487,7 +491,7 @@
   }
 
   function aplicarEstilo() {
-    $('app').className = ajustes.estilo === 'inmersivo' ? 'inmersivo' : 'galeria';
+    $('app').className = ajustes.estilo === 'galeria' ? 'galeria' : ('vidrio' + (ajustes.ajuste === 'completa' ? ' completa' : ''));
     reacomodar();
   }
 
