@@ -696,9 +696,10 @@
     // 2) Sombra suave debajo, para que los números floten sobre la pintura
     var xs = preparar($('hora-sombra'));
     xs.shadowColor = 'rgba(0,0,0,' + (0.14 + 0.2 * g).toFixed(2) + ')';
-    xs.shadowBlur = fs * 0.09;
-    xs.shadowOffsetY = fs * 0.02;
-    xs.shadowOffsetX = 10000;
+    // Las sombras del canvas no se escalan con setTransform: van en pixeles reales.
+    xs.shadowBlur = fs * 0.09 * dpr;
+    xs.shadowOffsetY = fs * 0.02 * dpr;
+    xs.shadowOffsetX = 10000 * dpr;
     xs.fillStyle = '#000';
     escribir(xs, function (x, c, px, py) { x.fillText(c, px, py); }, -10000);
 

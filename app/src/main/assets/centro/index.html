@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Centro de control</title>
+<link rel="stylesheet" href="centro.css">
+</head>
+<body>
+<!-- Lienzo vertical de 1080 × 1920; se escala y se gira para la pantalla parada -->
+<div id="lienzo">
+  <div id="fondo"><div class="capa" id="fondo-a"></div><div class="capa" id="fondo-b"></div><i class="velo"></i></div>
+
+  <header id="cabeza">
+    <div id="fecha"></div>
+    <div id="hora"><canvas id="hora-sombra" aria-hidden="true"></canvas><div id="hora-vidrio" aria-hidden="true"></div><canvas id="hora-texto" role="img" aria-label="Hora"></canvas></div>
+    <div id="clima-ahora"><span id="clima-icono" class="icono"></span><span id="clima-temp"></span><span id="clima-texto"></span></div>
+    <ol id="horas"></ol>
+  </header>
+
+  <section class="fila">
+    <article class="tarjeta" id="t-alarma">
+      <h2><span class="icono" data-i="alarma"></span>Próxima alarma</h2>
+      <div class="grande" id="alarma-hora">—</div>
+      <p class="tenue" id="alarma-falta"></p>
+    </article>
+    <article class="tarjeta" id="t-cuenta">
+      <h2><span class="icono" data-i="avion"></span><span id="cuenta-titulo">Madrid</span></h2>
+      <div class="grande"><span id="cuenta-dias">—</span><small> días</small></div>
+      <p class="tenue" id="cuenta-nota"></p>
+    </article>
+  </section>
+
+  <article class="tarjeta" id="t-hoy">
+    <h2><span class="icono" data-i="calendario"></span>Hoy<span class="derecha tenue" id="hoy-resumen"></span></h2>
+    <ul id="eventos" class="lista"></ul>
+    <h3 id="manana-titulo">Mañana</h3>
+    <ul id="eventos-manana" class="lista compacta"></ul>
+  </article>
+
+  <section class="fila">
+  <article class="tarjeta" id="t-pendientes">
+      <h2><span class="icono" data-i="check"></span>Pendientes<span class="derecha tenue" id="pend-resumen"></span></h2>
+      <ul id="pendientes" class="lista"></ul>
+    </article>
+
+    <article class="tarjeta" id="t-claude">
+      <h2><span class="icono" data-i="chispa"></span>Con Claude<span class="derecha tenue" id="claude-cuando"></span></h2>
+      <ul id="claude" class="lista"></ul>
+    </article>
+  </section>
+
+  <article class="tarjeta" id="t-musica">
+    <img id="m-portada" alt="">
+    <div id="m-info">
+      <div class="etiqueta"><span class="ondas"><i></i><i></i><i></i></span><span id="m-lugar">Sonos · Diego</span></div>
+      <div id="m-titulo"></div>
+      <div id="m-artista" class="tenue"></div>
+      <div id="m-linea"><i id="m-avance"></i></div>
+    </div>
+  </article>
+
+  <article class="tarjeta" id="t-cuarto">
+    <h2><span class="icono" data-i="casa"></span>Mi cuarto</h2>
+    <ul id="aparatos"></ul>
+  </article>
+
+  <footer id="pie">
+    <span id="pie-cambio"></span>
+    <span id="pie-actualizado"></span>
+  </footer>
+</div>
+<script src="centro.js"></script>
+</body>
+</html>
