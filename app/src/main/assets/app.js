@@ -76,12 +76,13 @@
     { clave: 'misFotos', etiqueta: 'Mis fotos de vez en cuando', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
     { clave: 'mezclarFavoritas', etiqueta: 'Mis favoritas de vez en cuando', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
     { clave: 'horizontales', etiqueta: 'Solo obras horizontales', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
+    { clave: 'cuartoSonos', etiqueta: 'Bocina Sonos', opciones: [{ v: 'Diego', t: 'Diego' }] },
     { clave: 'brillo', etiqueta: 'Brillo', barra: true, opciones: [10,20,30,40,50,60,70,80,90,100].map(function (n) { return { v: n, t: n + ' %' }; }) },
     { clave: 'brilloNoche', etiqueta: 'Brillo de noche', barra: true, opciones: [10,20,30,40,50,60,70,80,90,100].map(function (n) { return { v: n, t: n + ' %' }; }) },
     { clave: 'cerrar', etiqueta: 'Cerrar', boton: true }
   ];
 
-  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'vidrio', ajuste: 'llenar', liquido: 70, posReloj: 'arriba', formato24: false, horizontales: true, brillo: 100, brilloNoche: 50, mezclarFavoritas: true, misFotos: true };
+  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'vidrio', ajuste: 'llenar', liquido: 70, posReloj: 'arriba', formato24: false, horizontales: true, brillo: 100, brilloNoche: 50, cuartoSonos: 'Diego', mezclarFavoritas: true, misFotos: true };
 
   var DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
   var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -566,7 +567,7 @@
     return new Promise(function (ok) {
       esperaSonos = ok;
       setTimeout(function () { window.alSonos('tiempo'); }, 15000);
-      Android.sonos(accion === 'pausa' ? 'alternar' : accion);
+      Android.sonos(accion === 'pausa' ? 'alternar' : accion, ajustes.cuartoSonos || 'Diego');
     });
   }
   function esSonos(aparato) {
@@ -599,7 +600,8 @@
         if (r === 'sonando') return terminar(true, true);
         if (r === 'ok') return terminar(true);
         terminar(false);
-        if (r === 'sin-sonos') avisar('No encontré tu Sonos en el Wi-Fi. Revisa que la tele y la bocina estén en la misma red.', 7000);
+        if (r === 'sin-cuarto') avisar('No encontré la bocina <b>' + (ajustes.cuartoSonos || 'Diego') + '</b>. Revisa el nombre en Ajustes → Bocina Sonos.', 7000);
+        else if (r === 'sin-sonos') avisar('No encontré tu Sonos en el Wi-Fi. Revisa que la tele y la bocina estén en la misma red.', 7000);
         else if (r === 'nada') avisar('Tu Sonos no está reproduciendo nada ahorita', 4000);
         else avisar('La bocina no respondió' + (motivoSpotifyTexto ? ' (' + motivoSpotifyTexto + ')' : ''), 6000);
       });
@@ -799,7 +801,18 @@
     });
   }
 
+  // Los cuartos Sonos de la casa, para escoger cuál controla la tele.
+  var cuartosPedidos = false;
+  window.alCuartos = function (texto) {
+    var fila = FILAS.filter(function (f) { return f.clave === 'cuartoSonos'; })[0];
+    var nombres = (texto || '').split('|').filter(function (n) { return n; });
+    if (nombres.indexOf(ajustes.cuartoSonos) < 0) nombres.unshift(ajustes.cuartoSonos);
+    fila.opciones = nombres.map(function (n) { return { v: n, t: n }; });
+    if (panelAbierto) pintarPanel();
+  };
+
   function abrirPanel() {
+    if (!cuartosPedidos && window.Android && Android.sonosCuartos) { cuartosPedidos = true; Android.sonosCuartos(); }
     panelAbierto = true;
     filaActiva = 0;
     $('ajustes').hidden = false;

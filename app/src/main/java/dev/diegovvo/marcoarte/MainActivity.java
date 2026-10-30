@@ -81,15 +81,32 @@ public class MainActivity extends Activity {
 
         /** Manda una orden a la bocina Sonos y avisa a la página con window.alSonos(resultado). */
         @JavascriptInterface
-        public void sonos(final String accion) {
+        public void sonos(final String accion, final String cuarto) {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    final String r = sonos.ejecutar(accion);
+                    final String r = sonos.ejecutar(accion, cuarto);
                     web.post(new Runnable() {
                         @Override
                         public void run() {
                             web.evaluateJavascript("window.alSonos && alSonos('" + r + "')", null);
+                        }
+                    });
+                }
+            }).start();
+        }
+
+        /** Busca los cuartos Sonos y los manda a la página con window.alCuartos("A|B|C"). */
+        @JavascriptInterface
+        public void sonosCuartos() {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    final String r = sonos.cuartos().replace("\\", "").replace("'", "\\'");
+                    web.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            web.evaluateJavascript("window.alCuartos && alCuartos('" + r + "')", null);
                         }
                     });
                 }

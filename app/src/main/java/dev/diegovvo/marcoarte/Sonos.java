@@ -30,47 +30,90 @@ class Sonos {
 
     Sonos(Context ctx) { this.ctx = ctx.getApplicationContext(); }
 
-    /** accion: "alternar", "siguiente" o "anterior". Devuelve un resultado corto para la página. */
-    synchronized String ejecutar(String accion) {
+    /**
+     * accion: "alternar", "siguiente" o "anterior". cuarto: el nombre de la bocina en la app de Sonos.
+     * Solo se controla ese cuarto (o el grupo al que pertenezca). Nunca se tocan las demás bocinas.
+     */
+    synchronized String ejecutar(String accion, String cuarto) {
         if (bocinas.isEmpty()) buscar();
         if (bocinas.isEmpty()) return "sin-sonos";
-        String r = intentar(accion);
-        if (r.equals("fallo")) {           // quizá cambió la IP: buscamos de nuevo una vez
-            buscar();
-            r = intentar(accion);
-        }
-        return r;
+        String ip = coordinadorDe(cuarto);
+        if (ip == null) { buscar(); ip = coordinadorDe(cuarto); }   // quizá cambió la IP
+        if (ip == null) return "sin-cuarto";
+        return ordenar(ip, accion);
     }
 
-    private String intentar(String accion) {
-        List<String> sonando = new ArrayList<>();
-        List<String> enPausa = new ArrayList<>();
-        for (String ip : bocinas) {
-            String uri = valor(soap(ip, "GetMediaInfo", ""), "CurrentURI");
-            if (uri != null && uri.startsWith("x-rincon:")) continue;   // es parte de un grupo; manda el coordinador
-            String estado = valor(soap(ip, "GetTransportInfo", ""), "CurrentTransportState");
-            if ("PLAYING".equals(estado) || "TRANSITIONING".equals(estado)) sonando.add(ip);
-            else if ("PAUSED_PLAYBACK".equals(estado)) enPausa.add(ip);
-        }
-        if (sonando.isEmpty() && enPausa.isEmpty()) return "nada";
+    /** Nombres de los cuartos Sonos que hay en la casa, separados por "|". */
+    synchronized String cuartos() {
+        if (bocinas.isEmpty()) buscar();
+        Set<String> nombres = new LinkedHashSet<>();
+        for (String[] m : miembros()) if (!"1".equals(m[4])) nombres.add(m[2]);
+        StringBuilder b = new StringBuilder();
+        for (String n : nombres) { if (b.length() > 0) b.append('|'); b.append(n); }
+        return b.toString();
+    }
 
+    private String ordenar(String ip, String accion) {
+        String estado = valor(soap(ip, "GetTransportInfo", ""), "CurrentTransportState");
+        if (estado == null) return "fallo";
+        boolean sonando = "PLAYING".equals(estado) || "TRANSITIONING".equals(estado);
         String orden, resultado;
-        List<String> destino;
         if (accion.equals("alternar")) {
-            if (!sonando.isEmpty()) { orden = "Pause"; destino = sonando; resultado = "pausado"; }
-            else { orden = "Play"; destino = enPausa; resultado = "sonando"; }
+            if (sonando) { orden = "Pause"; resultado = "pausado"; }
+            else { orden = "Play"; resultado = "sonando"; }
         } else {
             orden = accion.equals("siguiente") ? "Next" : "Previous";
-            destino = sonando.isEmpty() ? enPausa : sonando;
             resultado = "ok";
         }
-        String extra = orden.equals("Play") ? "<Speed>1</Speed>" : "";
-        boolean alguno = false;
-        for (String ip : destino) {
-            String r = soap(ip, orden, extra);
-            if (r != null && !r.contains("<s:Fault>") && !r.contains("Fault>")) alguno = true;
+        String r = soap(ip, orden, orden.equals("Play") ? "<Speed>1</Speed>" : "");
+        return (r != null && !r.contains("Fault>")) ? resultado : "fallo";
+    }
+
+    /**
+     * Lee cómo están agrupadas las bocinas (ZoneGroupTopology) y devuelve la IP de la bocina
+     * que manda en el grupo donde está el cuarto pedido. En un par estéreo, la bocina
+     * escondida ("Invisible") nunca recibe órdenes.
+     */
+    private String coordinadorDe(String cuarto) {
+        List<String[]> lista = miembros();   // {uuid, ip, nombre, coordinador, invisible}
+        String coord = null;
+        for (String[] m : lista) {
+            if (m[2].equalsIgnoreCase(cuarto.trim()) && !"1".equals(m[4])) { coord = m[3]; break; }
         }
-        return alguno ? resultado : "fallo";
+        if (coord == null) return null;
+        for (String[] m : lista) if (m[0].equals(coord)) return m[1];
+        return null;
+    }
+
+    private List<String[]> miembros() {
+        List<String[]> lista = new ArrayList<>();
+        for (String ip : bocinas) {
+            String r = soapServicio(ip, "/ZoneGroupTopology/Control", "ZoneGroupTopology", "GetZoneGroupState", "");
+            String estado = valor(r, "ZoneGroupState");
+            if (estado == null) continue;
+            estado = estado.replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'").replace("&amp;", "&");
+            Matcher g = Pattern.compile("<ZoneGroup\\b[^>]*\\bCoordinator=\"([^\"]+)\"[^>]*>(.*?)</ZoneGroup>", Pattern.DOTALL).matcher(estado);
+            while (g.find()) {
+                String coordinador = g.group(1);
+                Matcher m = Pattern.compile("<ZoneGroupMember\\b([^>]*)>").matcher(g.group(2));
+                while (m.find()) {
+                    String a = m.group(1);
+                    String uuid = atributo(a, "UUID"), ubic = atributo(a, "Location"), nombre = atributo(a, "ZoneName");
+                    if (uuid == null || ubic == null || nombre == null) continue;
+                    Matcher h = Pattern.compile("http://([0-9.]+):").matcher(ubic);
+                    if (!h.find()) continue;
+                    String invisible = atributo(a, "Invisible");
+                    lista.add(new String[]{uuid, h.group(1), nombre, coordinador, invisible == null ? "0" : invisible});
+                }
+            }
+            if (!lista.isEmpty()) break;   // con una bocina que conteste basta: todas saben lo mismo
+        }
+        return lista;
+    }
+
+    private static String atributo(String texto, String nombre) {
+        Matcher m = Pattern.compile("\\b" + nombre + "=\"([^\"]*)\"").matcher(texto);
+        return m.find() ? m.group(1) : null;
     }
 
     /** Busca bocinas Sonos en el Wi-Fi (SSDP). */
@@ -109,20 +152,24 @@ class Sonos {
     }
 
     private static String soap(String ip, String accion, String extra) {
+        return soapServicio(ip, "/MediaRenderer/AVTransport/Control", "AVTransport", accion, "<InstanceID>0</InstanceID>" + extra);
+    }
+
+    private static String soapServicio(String ip, String ruta, String servicio, String accion, String args) {
         HttpURLConnection c = null;
         try {
             String cuerpo = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                     "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">" +
-                    "<s:Body><u:" + accion + " xmlns:u=\"urn:schemas-upnp-org:service:AVTransport:1\">" +
-                    "<InstanceID>0</InstanceID>" + extra + "</u:" + accion + "></s:Body></s:Envelope>";
+                    "<s:Body><u:" + accion + " xmlns:u=\"urn:schemas-upnp-org:service:" + servicio + ":1\">" +
+                    args + "</u:" + accion + "></s:Body></s:Envelope>";
             byte[] datos = cuerpo.getBytes("UTF-8");
-            c = (HttpURLConnection) new URL("http://" + ip + ":1400/MediaRenderer/AVTransport/Control").openConnection();
+            c = (HttpURLConnection) new URL("http://" + ip + ":1400" + ruta).openConnection();
             c.setConnectTimeout(2500);
             c.setReadTimeout(3500);
             c.setRequestMethod("POST");
             c.setDoOutput(true);
             c.setRequestProperty("Content-Type", "text/xml; charset=\"utf-8\"");
-            c.setRequestProperty("SOAPACTION", "\"urn:schemas-upnp-org:service:AVTransport:1#" + accion + "\"");
+            c.setRequestProperty("SOAPACTION", "\"urn:schemas-upnp-org:service:" + servicio + ":1#" + accion + "\"");
             c.setFixedLengthStreamingMode(datos.length);
             OutputStream o = c.getOutputStream();
             o.write(datos);
@@ -151,6 +198,11 @@ class Sonos {
     private static String valor(String xml, String etiqueta) {
         if (xml == null) return null;
         Matcher m = Pattern.compile("<" + etiqueta + ">([^<]*)</" + etiqueta + ">").matcher(xml);
+        if (!m.find()) {
+            m = Pattern.compile("<" + etiqueta + ">(.*?)</" + etiqueta + ">", Pattern.DOTALL).matcher(xml);
+            return m.find() ? m.group(1) : null;
+        }
+        m.reset();
         return m.find() ? m.group(1).replace("&amp;", "&") : null;
     }
 }
