@@ -264,3 +264,12 @@ html, body { position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
 /* Panel de ajustes con el mismo vidrio */
 .ajustes-caja { background: radial-gradient(130% 80% at 50% -20%, rgba(255,255,255,.16), rgba(255,255,255,.05) 60%), rgba(20,20,22,.92) !important;
   border: 0 !important; box-shadow: inset 0 2px 1px -1px rgba(255,255,255,.6), inset 0 -2px 1px -1px rgba(255,255,255,.25), inset 0 0 30px rgba(255,255,255,.06), 0 40px 120px rgba(0,0,0,.8) !important; }
+
+/* Solo blanco en letras y números. Colores únicamente en: portada, punto verde, urgente rojo y rayita de calendario */
+#lienzo { --acento: #ffffff; --alerta: #ff4d4d; }
+#alarma-hora, .lista li.ahora .cuando, .lista li.ahora .que { color: #fff !important; }
+.lista li.ahora .que { font-weight: 600; }
+.pildora { background: #fff !important; color: #000 !important; box-shadow: none !important; }
+.punto-lista.urgente { border-color: #ff4d4d; }
+.vence.urgente { color: #ff4d4d; }
+.lista .color { width: 5px; opacity: 1; }
