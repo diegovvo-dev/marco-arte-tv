@@ -80,11 +80,55 @@
   <!-- Alerta de pila baja -->
   <div id="alerta" hidden>
     <div class="alerta-caja">
-      <svg class="alerta-triangulo" viewBox="0 0 120 106"><path d="M53.1 6.2a8 8 0 0 1 13.8 0l50.2 87a8 8 0 0 1-6.9 12H9.8a8 8 0 0 1-6.9-12z" fill="#ff3b30"/><rect x="54" y="30" width="12" height="42" rx="6" fill="#fff"/><circle cx="60" cy="86" r="7" fill="#fff"/></svg>
-      <div class="alerta-titulo">Pila baja</div>
-      <div class="alerta-aparato" id="alerta-aparato"></div>
-      <div class="alerta-pila" id="alerta-pila"></div>
-      <div class="alerta-ayuda">Conéctalo a la corriente · <b>Atrás</b> para cerrar</div>
+      <svg class="alerta-triangulo" viewBox="0 0 220 200">
+        <defs>
+          <linearGradient id="rojoVidrio" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#ffb3ab" stop-opacity=".95"/>
+            <stop offset=".35" stop-color="#ff5a4f" stop-opacity=".85"/>
+            <stop offset=".75" stop-color="#e0261b" stop-opacity=".8"/>
+            <stop offset="1" stop-color="#ff7a70" stop-opacity=".9"/>
+          </linearGradient>
+          <linearGradient id="brillo" x1="0" y1="0" x2="0.8" y2="1">
+            <stop offset="0" stop-color="#fff" stop-opacity=".95"/>
+            <stop offset=".45" stop-color="#fff" stop-opacity=".15"/>
+            <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="reflejoBajo" x1="0" y1="1" x2="0.6" y2="0">
+            <stop offset="0" stop-color="#fff" stop-opacity=".55"/>
+            <stop offset=".4" stop-color="#fff" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="sombraAlerta" x="-30%" y="-30%" width="160%" height="170%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="7"/>
+            <feOffset dy="10"/>
+            <feComponentTransfer><feFuncA type="linear" slope=".55"/></feComponentTransfer>
+            <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <g filter="url(#sombraAlerta)" stroke-linecap="round" stroke-linejoin="round" fill="none">
+          <!-- profundidad (el "grosor" del vidrio) -->
+          <path d="M110 20 L200 176 L20 176 Z" stroke="#7a0d07" stroke-opacity=".75" stroke-width="24" transform="translate(0 6)"/>
+          <rect x="99" y="70" width="22" height="54" rx="11" fill="#7a0d07" fill-opacity=".75" stroke="none" transform="translate(0 6)"/>
+          <circle cx="110" cy="148" r="12" fill="#7a0d07" fill-opacity=".75" stroke="none" transform="translate(0 6)"/>
+          <!-- cuerpo de vidrio rojo -->
+          <path d="M110 20 L200 176 L20 176 Z" stroke="url(#rojoVidrio)" stroke-width="24"/>
+          <rect x="99" y="70" width="22" height="54" rx="11" fill="url(#rojoVidrio)" stroke="none"/>
+          <circle cx="110" cy="148" r="12" fill="url(#rojoVidrio)" stroke="none"/>
+          <!-- borde interior oscuro para que se vea hueco -->
+          <path d="M110 20 L200 176 L20 176 Z" stroke="#4a0703" stroke-opacity=".35" stroke-width="2" transform="translate(0 0)" />
+          <!-- brillo de arriba (luz que pega en el vidrio) -->
+          <path d="M110 20 L200 176 L20 176 Z" stroke="url(#brillo)" stroke-width="7" transform="translate(-1 -4)"/>
+          <rect x="102" y="73" width="7" height="44" rx="3.5" fill="url(#brillo)" stroke="none"/>
+          <circle cx="106" cy="144" r="4.5" fill="#fff" fill-opacity=".7" stroke="none"/>
+          <!-- reflejo de abajo -->
+          <path d="M110 20 L200 176 L20 176 Z" stroke="url(#reflejoBajo)" stroke-width="3" transform="translate(1 5)"/>
+        </g>
+      </svg>
+      <div class="alerta-texto">
+        <div class="alerta-titulo">Pila baja</div>
+        <div class="alerta-aparato" id="alerta-aparato"></div>
+        <div class="alerta-pila" id="alerta-pila"></div>
+        <div class="alerta-ayuda">Conéctalo a la corriente · <b>Atrás</b> para cerrar</div>
+      </div>
     </div>
   </div>
 
