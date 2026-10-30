@@ -144,67 +144,113 @@
 
 
   // ------------------------------------------------------------ Pintar
+  // Cada sección se pinta con lo que haya; si falta un dato, se dice qué falta conectar.
+  function vacio(id, texto) { $(id).innerHTML = '<li class="vacio">' + esc(texto) + '</li>'; }
+
   function pintar(D) {
     var ahora = new Date();
     $('fecha').textContent = DIAS[ahora.getDay()] + ', ' + ahora.getDate() + ' de ' + MESES[ahora.getMonth()];
     dibujarHora(hora12(ahora, false), false);
 
     var c = D.clima;
-    $('clima-icono').innerHTML = I[c.icono] || '';
-    $('clima-temp').textContent = c.temp + '°';
-    $('clima-texto').textContent = c.texto + ' · ' + c.ciudad;
-    $('horas').innerHTML = c.horas.map(function (x) { return '<li>' + esc(x.h) + icono(x.i) + '<b>' + x.t + '°</b></li>'; }).join('');
+    if (c) {
+      $('clima-icono').innerHTML = I[c.icono] || '';
+      $('clima-temp').textContent = c.temp + '°';
+      $('clima-texto').textContent = c.texto + ' · ' + c.ciudad;
+      $('horas').innerHTML = c.horas.map(function (x) { return '<li>' + esc(x.h) + icono(x.i) + '<b>' + x.t + '°</b></li>'; }).join('');
+    }
 
     if (D.alarma) {
       $('alarma-hora').textContent = hora12(D.alarma, true);
-      var dia = D.alarma.toDateString() === ahora.toDateString() ? 'Hoy' : 'Mañana';
+      var manana = new Date(ahora); manana.setDate(manana.getDate() + 1);
+      var dia = D.alarma.toDateString() === ahora.toDateString() ? 'Hoy' : D.alarma.toDateString() === manana.toDateString() ? 'Mañana' : DIAS[D.alarma.getDay()];
       $('alarma-falta').textContent = dia + ' · ' + falta(D.alarma - ahora);
+    } else {
+      $('alarma-hora').textContent = '—';
+      $('alarma-falta').textContent = D.iphone ? 'Sin alarmas activas' : 'Falta el Atajo del iPhone';
     }
 
-    $('cuenta-titulo').textContent = D.cuenta.titulo;
-    $('cuenta-dias').textContent = Math.max(0, Math.ceil((D.cuenta.fecha - ahora) / 86400000));
-    $('cuenta-nota').textContent = D.cuenta.nota;
+    if (D.cuenta && D.cuenta.fecha) {
+      $('cuenta-titulo').textContent = D.cuenta.titulo;
+      $('cuenta-dias').textContent = Math.max(0, Math.ceil((D.cuenta.fecha - ahora) / 86400000));
+      $('cuenta-nota').textContent = D.cuenta.nota;
+    } else {
+      $('cuenta-dias').textContent = '—';
+      $('cuenta-nota').textContent = 'Falta la fecha del viaje';
+    }
 
     // Hoy: lo que sigue (máximo 3); si ya pasó casi todo, se completa con lo último que pasó.
-    var siguen = D.eventos.filter(function (e) { return e.fin >= ahora; });
-    var pasaron = D.eventos.filter(function (e) { return e.fin < ahora; });
-    var visibles = pasaron.slice(Math.max(0, pasaron.length - Math.max(0, 3 - siguen.length))).concat(siguen).slice(0, 3);
-    $('eventos').innerHTML = visibles.map(function (e) {
-      var clase = e.fin < ahora ? 'pasado' : (e.ini <= ahora ? 'ahora' : '');
-      var pil = clase === 'ahora' ? '<span class="pildora">Ahora</span>' : '';
-      return '<li class="' + clase + '"><span class="cuando">' + hora12(e.ini, false) + '</span>' +
-        '<span class="que">' + esc(e.titulo) + pil + '<small>' + hora12(e.ini, false) + ' – ' + hora12(e.fin, true) + (e.lugar ? ' · ' + esc(e.lugar) : '') + '</small></span></li>';
-    }).join('');
-    $('hoy-resumen').textContent = siguen.length ? (siguen.length === 1 ? '1 por delante' : siguen.length + ' por delante') : 'Nada más hoy';
-    $('eventos-manana').innerHTML = D.manana.slice(0, 2).map(function (e) {
-      return '<li><span class="cuando">Mañana ' + hora12(e.ini, false) + '</span><span class="que">' + esc(e.titulo) + '</span></li>';
-    }).join('');
+    if (D.eventos) {
+      var siguen = D.eventos.filter(function (e) { return e.fin >= ahora; });
+      var pasaron = D.eventos.filter(function (e) { return e.fin < ahora; });
+      var visibles = pasaron.slice(Math.max(0, pasaron.length - Math.max(0, 3 - siguen.length))).concat(siguen).slice(0, 3);
+      if (visibles.length) {
+        $('eventos').innerHTML = visibles.map(function (e) {
+          var clase = e.fin < ahora ? 'pasado' : (e.ini <= ahora ? 'ahora' : '');
+          var pil = clase === 'ahora' ? '<span class="pildora">Ahora</span>' : '';
+          var horario = e.todoElDia ? 'Todo el día' : hora12(e.ini, false) + ' – ' + hora12(e.fin, true);
+          return '<li class="' + clase + '"><span class="cuando">' + (e.todoElDia ? 'Día' : hora12(e.ini, false)) + '</span>' +
+            '<span class="que">' + esc(e.titulo) + pil + '<small>' + horario + (e.lugar ? ' · ' + esc(e.lugar) : '') + '</small></span></li>';
+        }).join('');
+      } else vacio('eventos', 'Nada en el calendario hoy');
+      $('hoy-resumen').textContent = siguen.length ? (siguen.length === 1 ? '1 por delante' : siguen.length + ' por delante') : 'Nada más hoy';
+      $('eventos-manana').innerHTML = (D.manana || []).slice(0, 2).map(function (e) {
+        return '<li><span class="cuando">Mañana ' + (e.todoElDia ? '' : hora12(e.ini, false)) + '</span><span class="que">' + esc(e.titulo) + '</span></li>';
+      }).join('');
+    } else {
+      vacio('eventos', 'Conecta tu calendario de iCloud');
+      $('hoy-resumen').textContent = '';
+      $('eventos-manana').innerHTML = '';
+    }
 
-    $('pendientes').innerHTML = D.pendientes.slice(0, 3).map(function (p) {
-      return '<li><span class="punto-lista' + (p.urgente ? ' urgente' : '') + '"></span><span class="que">' + esc(p.titulo) +
-        (p.vence ? '<span class="vence' + (p.urgente ? ' urgente' : '') + '">' + esc(p.vence) + '</span>' : '') + '</span></li>';
-    }).join('');
-    $('pend-resumen').textContent = D.pendientes.length + ' en total';
+    if (D.pendientes) {
+      if (D.pendientes.length) {
+        $('pendientes').innerHTML = D.pendientes.slice(0, 3).map(function (p) {
+          return '<li><span class="punto-lista' + (p.urgente ? ' urgente' : '') + '"></span><span class="que">' + esc(p.titulo) +
+            (p.vence ? '<span class="vence' + (p.urgente ? ' urgente' : '') + '">' + esc(p.vence) + '</span>' : '') + '</span></li>';
+        }).join('');
+      } else vacio('pendientes', 'Sin pendientes');
+      $('pend-resumen').textContent = D.pendientes.length ? D.pendientes.length + ' en total' : '';
+    } else {
+      vacio('pendientes', 'Falta el Atajo del iPhone');
+      $('pend-resumen').textContent = '';
+    }
 
-    $('claude-cuando').textContent = D.claude.cuando;
-    $('claude').innerHTML = D.claude.temas.slice(0, 3).map(function (t) {
-      return '<li>' + esc(t.titulo) + '<small>' + esc(t.nota) + '</small></li>';
-    }).join('');
+    if (D.claude && D.claude.temas && D.claude.temas.length) {
+      $('claude-cuando').textContent = D.claude.cuando || '';
+      $('claude').innerHTML = D.claude.temas.slice(0, 3).map(function (t) {
+        return '<li>' + esc(t.titulo) + '<small>' + esc(t.nota || '') + '</small></li>';
+      }).join('');
+    } else {
+      $('claude-cuando').textContent = '';
+      vacio('claude', 'Pronto: el resumen de tus chats');
+    }
 
     var m = D.musica;
-    $('m-titulo').textContent = m.titulo;
-    $('m-artista').textContent = m.artista;
-    $('m-avance').style.width = Math.round(m.avance * 100) + '%';
-    if (m.portada) $('m-portada').src = m.portada;
-    $('m-portada').style.visibility = m.portada ? 'visible' : 'hidden';
+    if (m && m.titulo) {
+      $('t-musica').className = 'tarjeta' + (m.sonando ? '' : ' pausa');
+      $('m-lugar').textContent = 'Sonos · ' + (m.cuarto || 'Diego') + (m.sonando ? '' : ' · En pausa');
+      $('m-titulo').textContent = m.titulo;
+      $('m-artista').textContent = m.artista;
+      $('m-avance').style.width = Math.round(Math.min(1, m.avance || 0) * 100) + '%';
+      if (m.portada && $('m-portada').getAttribute('src') !== m.portada) $('m-portada').src = m.portada;
+      $('m-portada').style.visibility = m.portada ? 'visible' : 'hidden';
+    } else {
+      $('t-musica').className = 'tarjeta pausa';
+      $('m-lugar').textContent = 'Sonos · ' + ((m && m.cuarto) || 'Diego');
+      $('m-titulo').textContent = 'Nada sonando';
+      $('m-artista').textContent = '';
+      $('m-avance').style.width = '0';
+      $('m-portada').style.visibility = 'hidden';
+    }
 
-    $('aparatos').innerHTML = D.aparatos.map(function (a) {
+    $('aparatos').innerHTML = (D.aparatos || []).map(function (a) {
       return '<li class="' + (a.on ? 'on' : 'off') + '">' + icono(a.icono) +
         '<div><div class="nombre">' + esc(a.nombre) + '</div><div class="estado"><span class="punto"></span><span class="texto">' + esc(a.estado) + '</span></div></div></li>';
     }).join('');
 
-    $('pie-cambio').textContent = D.cambio;
-    $('pie-actualizado').textContent = 'Actualizado ' + hora12(D.actualizado, true);
+    $('pie-cambio').textContent = D.cambio || '';
+    $('pie-actualizado').textContent = D.actualizado ? 'Actualizado ' + hora12(D.actualizado, true) : '';
   }
 
   // ------------------------------------------------------------ Ajustes (☰): brillo y vidrio líquido
@@ -234,6 +280,9 @@
       return '<li class="' + (i === filaActiva ? 'activo' : '') + '"><div class="fila-ajuste"><span>' + f.etiqueta + '</span><b>' + v + ' %</b></div>' +
         '<div class="barra"><i style="width:' + pct + '%"></i><b style="left:' + pct + '%"></b></div></li>';
     }).join('');
+    var ip = '';
+    try { ip = (window.Android && Android.ip && Android.ip()) || ''; } catch (e) {}
+    $('ajustes-lista').innerHTML += '<li class="info"><div class="fila-ajuste"><span>Buzón de esta tele</span><b>' + (ip ? 'http://' + ip + ':8765' : 'Sin Wi‑Fi') + '</b></div></li>';
   }
   function abrirPanel() { panelAbierto = true; filaActiva = 0; $('ajustes').hidden = false; pintarPanel(); }
   function cerrarPanel() { panelAbierto = false; $('ajustes').hidden = true; }
@@ -274,8 +323,213 @@
   window.addEventListener('resize', acomodar);
   acomodar();
 
-  window.centroEjemplo = EJEMPLO;
+  // ------------------------------------------------------------ Datos reales
+  // En la tele (window.Android existe) se usan datos reales; en una vista previa, los de ejemplo.
+  var REAL = !!window.Android;
+  var CONFIG = { ciudad: { nombre: 'Ciudad de México', lat: 19.4326, lon: -99.1332 }, cuartoSonos: 'Diego', aparatos: [] };
+  function leerJSON(nombre) {
+    try { var t = window.Android && Android.leer(nombre); return t ? JSON.parse(t) : null; } catch (e) { return null; }
+  }
+  function pedir(url, ms) {
+    return new Promise(function (ok, falla) {
+      var x = new XMLHttpRequest();
+      x.open('GET', url, true); x.timeout = ms || 20000;
+      x.onload = function () { if (x.status >= 200 && x.status < 300) ok(x.responseText); else falla(new Error('HTTP ' + x.status)); };
+      x.onerror = x.ontimeout = function () { falla(new Error('red')); };
+      x.send();
+    });
+  }
+  function haceCuanto(d) {
+    var min = Math.round((Date.now() - d) / 60000);
+    if (min < 1) return 'ahora';
+    if (min < 60) return 'hace ' + min + ' min';
+    var h = Math.round(min / 60);
+    return h < 24 ? 'hace ' + h + ' h' : 'hace ' + Math.round(h / 24) + ' d';
+  }
+
+  var D = { actualizado: new Date(), aparatos: [] };
+
+  // Clima (Open-Meteo, gratis y sin cuenta)
+  var CLIMA = { 0: 'Despejado', 1: 'Casi despejado', 2: 'Parcialmente nublado', 3: 'Nublado', 45: 'Neblina', 48: 'Neblina' };
+  function textoClima(c) {
+    if (CLIMA[c]) return CLIMA[c];
+    if (c >= 51 && c <= 57) return 'Llovizna';
+    if (c >= 61 && c <= 67) return 'Lluvia';
+    if (c >= 71 && c <= 77) return 'Nieve';
+    if (c >= 80 && c <= 82) return 'Chubascos';
+    if (c >= 95) return 'Tormenta';
+    return '';
+  }
+  function iconoClima(c, dia) {
+    if (c >= 95) return 'tormenta';
+    if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) return 'lluvia';
+    if (c === 3 || c === 45 || c === 48) return 'nube';
+    if (c === 2) return dia ? 'parcial' : 'nube';
+    return dia ? 'sol' : 'luna';
+  }
+  function horaCorta(d) { var h = d.getHours(); return (h % 12 === 0 ? 12 : h % 12) + (h < 12 ? ' a. m.' : ' p. m.'); }
+  function actualizarClima() {
+    var c = CONFIG.ciudad;
+    pedir('https://api.open-meteo.com/v1/forecast?latitude=' + c.lat + '&longitude=' + c.lon +
+      '&current=temperature_2m,weather_code,is_day&hourly=temperature_2m,weather_code,is_day&timezone=auto&forecast_days=2').then(function (t) {
+      var r = JSON.parse(t), ahora = new Date(), horas = [];
+      horas.push({ h: 'Ahora', i: iconoClima(r.current.weather_code, r.current.is_day), t: Math.round(r.current.temperature_2m) });
+      for (var k = 0; k < r.hourly.time.length && horas.length < 6; k++) {
+        var d = new Date(r.hourly.time[k]);
+        if (d <= ahora || d.getHours() % 3 !== 0) continue;
+        if (horas.length > 1 && (d - horas[horas.length - 1].d) < 3 * 3600000) continue;
+        horas.push({ h: horaCorta(d), i: iconoClima(r.hourly.weather_code[k], r.hourly.is_day[k]), t: Math.round(r.hourly.temperature_2m[k]), d: d });
+      }
+      D.clima = { temp: Math.round(r.current.temperature_2m), texto: textoClima(r.current.weather_code), icono: iconoClima(r.current.weather_code, r.current.is_day), ciudad: c.nombre, horas: horas };
+      repintar();
+    }).catch(function () {});
+  }
+
+  // Tipo de cambio euro → peso (Frankfurter, datos del Banco Central Europeo, sin cuenta)
+  function actualizarCambio() {
+    pedir('https://api.frankfurter.app/latest?from=EUR&to=MXN').then(function (t) {
+      var r = JSON.parse(t);
+      if (r.rates && r.rates.MXN) { D.cambio = 'EUR 1 = MXN ' + r.rates.MXN.toFixed(2); repintar(); }
+    }).catch(function () {});
+  }
+
+  // Calendario de iCloud (link público, webcal:// → https://)
+  function actualizarCalendario() {
+    if (!CONFIG.calendario) return;
+    var url = CONFIG.calendario.replace(/^webcal:/i, 'https:');
+    pedir(url, 30000).then(function (t) {
+      var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+      var manana = new Date(hoy); manana.setDate(hoy.getDate() + 1);
+      var pasado = new Date(hoy); pasado.setDate(hoy.getDate() + 2);
+      var todos = window.leerICS(t, hoy, pasado);
+      D.eventos = todos.filter(function (e) { return e.ini < manana && e.fin > hoy; });
+      D.manana = todos.filter(function (e) { return e.ini >= manana && e.ini < pasado; });
+      repintar();
+    }).catch(function () {});
+  }
+
+  // iPhone: el Atajo manda recordatorios, alarmas y batería al buzón de la tele
+  // Formato: {"recordatorios": "Título | vence\n…", "alarmas": "7:00 a.m.\n…", "bateria": 82}
+  function proximaAlarma(texto) {
+    var ahora = new Date(), mejor = null;
+    String(texto || '').split(/\n|,/).forEach(function (l) {
+      var m = /(\d{1,2})[:.](\d{2})\s*([ap])?\.?\s*m?\.?/i.exec(l);
+      if (!m) return;
+      var h = +m[1], min = +m[2], ap = (m[3] || '').toLowerCase();
+      if (ap === 'p' && h < 12) h += 12;
+      if (ap === 'a' && h === 12) h = 0;
+      var d = new Date(); d.setHours(h, min, 0, 0);
+      if (d <= ahora) d.setDate(d.getDate() + 1);
+      if (!mejor || d < mejor) mejor = d;
+    });
+    return mejor;
+  }
+  function leerIphone() {
+    var j = leerJSON('iphone');
+    if (!j) return;
+    D.iphone = j;
+    var lista = Array.isArray(j.recordatorios) ? j.recordatorios : String(j.recordatorios || '').split('\n');
+    D.pendientes = lista.map(function (x) {
+      if (typeof x === 'object') return x;
+      var p = String(x).split('|');
+      var vence = (p[1] || '').trim();
+      return { titulo: p[0].trim(), vence: vence, urgente: /hoy|vencid|ayer/i.test(vence) };
+    }).filter(function (x) { return x.titulo; });
+    D.alarma = proximaAlarma(j.alarmas);
+    D.iphoneVisto = new Date(j.enviado || Date.now());
+    repintar();
+  }
+
+  // Resumen de Claude (lo deja una tarea automática)
+  function leerClaude() {
+    var j = leerJSON('claude');
+    if (j && j.temas) { D.claude = { temas: j.temas, cuando: j.actualizado ? haceCuanto(new Date(j.actualizado)) : '' }; repintar(); }
+  }
+
+  // Sonos: qué suena en el cuarto, leído directo de la bocina
+  var sonosPidiendo = false;
+  window.alSonosInfo = function (t) {
+    sonosPidiendo = false;
+    var j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {}
+    if (!j || !j.titulo) { D.musica = { cuarto: CONFIG.cuartoSonos, titulo: '' }; D.sonosEstado = j ? j.estado : ''; }
+    else {
+      D.sonosEstado = j.estado;
+      D.musica = { cuarto: CONFIG.cuartoSonos, titulo: j.titulo, artista: j.artista, portada: j.portada,
+        sonando: j.estado === 'PLAYING' || j.estado === 'TRANSITIONING', avance: j.dur ? j.pos / j.dur : 0 };
+    }
+    repintar();
+  };
+  function actualizarSonos() {
+    if (sonosPidiendo || !(window.Android && Android.sonosInfo)) return;
+    sonosPidiendo = true;
+    setTimeout(function () { sonosPidiendo = false; }, 15000);
+    Android.sonosInfo(CONFIG.cuartoSonos || 'Diego');
+  }
+
+  // Aparatos del cuarto
+  var vivos = {};
+  window.alPresencia = function (r) { for (var k in r) vivos[k] = r[k]; armarAparatos(); repintar(); };
+  function actualizarPresencia() {
+    var ips = (CONFIG.aparatos || []).map(function (a) { return a.ip; }).filter(Boolean);
+    if (ips.length && window.Android && Android.presencia) Android.presencia(JSON.stringify(ips));
+  }
+  function armarAparatos() {
+    var lista = [], ahora = Date.now();
+    var lap = leerJSON('laptop');
+    if (lap) {
+      var reciente = ahora - new Date(lap.enviado || 0) < 15 * 60000;
+      lista.push({ nombre: 'Laptop', icono: 'laptop', on: reciente,
+        estado: reciente ? (lap.cargando ? 'Cargando' : 'Con batería') + (lap.bateria != null ? ' · ' + lap.bateria + ' %' : '') : 'Apagada o dormida' });
+    }
+    if (D.iphone) {
+      var b = D.iphone.bateria != null ? Math.round(+D.iphone.bateria > 1 ? +D.iphone.bateria : +D.iphone.bateria * 100) + ' % · ' : '';
+      lista.push({ nombre: 'iPhone', icono: 'telefono', on: ahora - D.iphoneVisto < 3 * 3600000, estado: b + haceCuanto(D.iphoneVisto) });
+    }
+    lista.push({ nombre: 'Sonos ' + (CONFIG.cuartoSonos || 'Diego'), icono: 'bocina', on: D.sonosEstado === 'PLAYING',
+      estado: D.sonosEstado === 'PLAYING' ? 'Sonando' : D.sonosEstado ? 'En pausa' : 'Buscando…' });
+    var tele = leerJSON('tele');
+    (CONFIG.aparatos || []).forEach(function (a) {
+      var on = vivos[a.ip];
+      var estado = on === undefined ? 'Revisando…' : on ? 'Encendido' : 'Apagado';
+      if (a.icono === 'tele' && on && tele && tele.obra) estado = tele.obra;
+      lista.push({ nombre: a.nombre, icono: a.icono || 'tele', on: !!on, estado: estado });
+    });
+    D.aparatos = lista.slice(0, 6);
+  }
+
+  var repintarPendiente = false;
+  function repintar() {
+    if (repintarPendiente) return;
+    repintarPendiente = true;
+    setTimeout(function () { repintarPendiente = false; D.actualizado = new Date(); armarAparatos(); pintar(D); }, 50);
+  }
+
+  // Cuando llega algo al buzón (iPhone, laptop, Sharp o Claude), se vuelve a leer al momento
+  window.alDatos = function (nombre) {
+    if (nombre === 'iphone') leerIphone();
+    else if (nombre === 'claude') leerClaude();
+    else repintar();
+  };
+
+  function arrancar() {
+    var cfg = leerJSON('config');
+    if (cfg) for (var k in cfg) CONFIG[k] = cfg[k];
+    if (CONFIG.madrid) {
+      var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(CONFIG.madrid);
+      if (m) D.cuenta = { titulo: 'Madrid', fecha: new Date(+m[1], +m[2] - 1, +m[3]), nota: 'Comillas · ICADE' };
+    }
+    leerIphone(); leerClaude();
+    actualizarClima(); setInterval(actualizarClima, 20 * 60000);
+    actualizarCambio(); setInterval(actualizarCambio, 6 * 3600000);
+    actualizarCalendario(); setInterval(actualizarCalendario, 10 * 60000);
+    actualizarSonos(); setInterval(actualizarSonos, 5000);
+    actualizarPresencia(); setInterval(actualizarPresencia, 60000);
+    setInterval(function () { leerIphone(); repintar(); }, 60000);
+    repintar();
+  }
+
   aplicarAjustes();
-  pintar(DATOS);
-  setInterval(function () { pintar(DATOS); }, 20000);
+  if (REAL) arrancar();
+  else { pintar(EJEMPLO); setInterval(function () { pintar(EJEMPLO); }, 20000); }
+  window.centroEjemplo = EJEMPLO;
 })();

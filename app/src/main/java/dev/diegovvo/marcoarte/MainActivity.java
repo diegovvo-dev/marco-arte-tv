@@ -25,6 +25,7 @@ public class MainActivity extends Activity {
 
     private WebView web;
     private Sonos sonos;
+    private Buzon buzon;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,8 +52,49 @@ public class MainActivity extends Activity {
         setContentView(web);
         ocultarBarras();
         new File(carpeta(), "fotos").mkdirs();
-        web.loadUrl("file:///android_asset/index.html");
+        if (esCentro()) {
+            web.setBackgroundColor(0xFF030304);
+            // El buzón recibe los datos del iPhone y de la laptop por el Wi-Fi.
+            buzon = new Buzon(carpeta(), new Buzon.Aviso() {
+                @Override
+                public void llego(final String nombre) {
+                    web.post(new Runnable() {
+                        @Override
+                        public void run() { js("window.alDatos && alDatos('" + nombre + "')"); }
+                    });
+                }
+            });
+            buzon.iniciar();
+            web.loadUrl("file:///android_asset/centro/index.html");
+        } else {
+            web.loadUrl("file:///android_asset/index.html");
+        }
         web.requestFocus();
+    }
+
+    /** Esta tele muestra el centro de control (lo decide el instalador con modo.txt). */
+    private boolean esCentro() {
+        return "centro".equals(leerArchivo(new File(carpeta(), "modo.txt")).trim());
+    }
+
+    private static String leerArchivo(File f) {
+        if (!f.isFile()) return "";
+        try {
+            FileInputStream in = new FileInputStream(f);
+            byte[] b = new byte[(int) Math.min(f.length(), 512 * 1024)];
+            int leidos = 0;
+            while (leidos < b.length) {
+                int r = in.read(b, leidos, b.length - leidos);
+                if (r < 0) break;
+                leidos += r;
+            }
+            in.close();
+            String t = new String(b, 0, leidos, "UTF-8");
+            if (t.length() > 0 && t.charAt(0) == '\uFEFF') t = t.substring(1);
+            return t;
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     /** Carpeta propia de la app en el Fire TV, donde el instalador deja fotos y la llave de Spotify. */
@@ -108,6 +150,73 @@ public class MainActivity extends Activity {
                         public void run() {
                             web.evaluateJavascript("window.alCuartos && alCuartos('" + r + "')", null);
                         }
+                    });
+                }
+            }).start();
+        }
+
+        /** Lee un archivo de datos de la carpeta de la app (solo nombres conocidos). */
+        @JavascriptInterface
+        public String leer(String nombre) {
+            String[] ok = {"iphone", "laptop", "tele", "claude", "config"};
+            for (String n : ok) if (n.equals(nombre)) return leerArchivo(new File(carpeta(), nombre + ".json"));
+            return "";
+        }
+
+        /** La IP de esta tele en el Wi-Fi (para configurar el Atajo del iPhone). */
+        @JavascriptInterface
+        public String ip() {
+            try {
+                android.net.wifi.WifiManager w = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+                int i = w.getConnectionInfo().getIpAddress();
+                if (i == 0) return "";
+                return (i & 255) + "." + ((i >> 8) & 255) + "." + ((i >> 16) & 255) + "." + ((i >> 24) & 255);
+            } catch (Exception e) {
+                return "";
+            }
+        }
+
+        /** Qué suena en el cuarto Sonos; responde con window.alSonosInfo(json). */
+        @JavascriptInterface
+        public void sonosInfo(final String cuarto) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    final String r = sonos.info(cuarto);
+                    web.post(new Runnable() {
+                        @Override
+                        public void run() { js("window.alSonosInfo && alSonosInfo(" + org.json.JSONObject.quote(r) + ")"); }
+                    });
+                }
+            }).start();
+        }
+
+        /** Revisa qué aparatos contestan en el Wi-Fi; responde con window.alPresencia({"ip":true,…}). */
+        @JavascriptInterface
+        public void presencia(final String ipsJson) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    org.json.JSONObject res = new org.json.JSONObject();
+                    try {
+                        JSONArray ips = new JSONArray(ipsJson);
+                        for (int i = 0; i < ips.length(); i++) {
+                            String ip = ips.getString(i);
+                            if (!ip.matches("[0-9.]+")) continue;
+                            boolean vivo = false;
+                            try {
+                                Process p = Runtime.getRuntime().exec(new String[]{"ping", "-c", "1", "-W", "1", ip});
+                                vivo = p.waitFor() == 0;
+                            } catch (Exception e) {
+                                vivo = java.net.InetAddress.getByName(ip).isReachable(1200);
+                            }
+                            res.put(ip, vivo);
+                        }
+                    } catch (Exception ignorar) { }
+                    final String r = res.toString();
+                    web.post(new Runnable() {
+                        @Override
+                        public void run() { js("window.alPresencia && alPresencia(" + r + ")"); }
                     });
                 }
             }).start();
@@ -180,6 +289,12 @@ public class MainActivity extends Activity {
         super.onResume();
         web.onResume();
         ocultarBarras();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (buzon != null) buzon.detener();
+        super.onDestroy();
     }
 
     @Override

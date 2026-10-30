@@ -305,6 +305,7 @@
     $('atm-' + capa).className = 'capa';
     capa = siguiente;
     obraActual = o;
+    avisarCentro(o);
     if (pausado) guardarFija();
     $('espera').className = 'oculto';
     mostrarCartela(o);
@@ -312,6 +313,20 @@
 
   var obrasNuevas = 0;
   var turnoFavorita = 0;
+  // Le cuenta al centro de control (la otra tele) qué obra se está mostrando.
+  var centroIp = null;
+  try { var cfg = JSON.parse((window.Android && Android.leer && Android.leer('config')) || '{}'); centroIp = cfg.centroIp || null; } catch (e) {}
+  function avisarCentro(o) {
+    if (!centroIp) return;
+    try {
+      var x = new XMLHttpRequest();
+      x.open('POST', 'http://' + centroIp + ':8765/tele', true);
+      x.setRequestHeader('Content-Type', 'application/json');
+      x.timeout = 5000;
+      x.send(JSON.stringify({ obra: o.title || '', artista: o.artist_title || '', enviado: new Date().toISOString() }));
+    } catch (e) {}
+  }
+
   function obtenerSiguiente() {
     obrasNuevas++;
     var col = coleccionActual();

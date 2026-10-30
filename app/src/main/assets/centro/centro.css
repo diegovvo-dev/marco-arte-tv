@@ -157,3 +157,7 @@ body { font-family: var(--letra); -webkit-font-smoothing: antialiased; cursor: n
   font-size: 22px; color: #f3f3f1; background: rgba(20,20,24,.92); border: 1px solid rgba(255,255,255,.12); padding: 14px 26px;
   border-radius: 99px; opacity: 0; transition: opacity .4s ease; white-space: nowrap; }
 #aviso.visible { opacity: 1; }
+.lista li.vacio { color: var(--tenue); font-size: 21px; display: block; padding-top: 0; }
+#ajustes-lista li.info { margin-top: 10px; border-top: 1px solid rgba(255,255,255,.1); border-radius: 0; padding-top: 26px; }
+#ajustes-lista li.info .fila-ajuste { font-size: 22px; color: rgba(243,243,241,.5); }
+#ajustes-lista li.info b { font-weight: 500; color: rgba(243,243,241,.8); }

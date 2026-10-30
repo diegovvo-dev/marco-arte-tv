@@ -43,6 +43,62 @@ class Sonos {
         return ordenar(ip, accion);
     }
 
+    /**
+     * Qué está sonando en el cuarto, como JSON:
+     * {"estado":"PLAYING","titulo":"…","artista":"…","album":"…","portada":"http://…","pos":83,"dur":200}
+     * Devuelve "" si no encuentra el cuarto.
+     */
+    synchronized String info(String cuarto) {
+        if (bocinas.isEmpty()) buscar();
+        String ip = coordinadorDe(cuarto);
+        if (ip == null) { buscar(); ip = coordinadorDe(cuarto); }
+        if (ip == null) return "";
+        String estado = valor(soap(ip, "GetTransportInfo", ""), "CurrentTransportState");
+        String pos = soap(ip, "GetPositionInfo", "");
+        String meta = desescapar(desescapar(valor(pos, "TrackMetaData")));
+        String titulo = desescapar(valorLibre(meta, "dc:title"));
+        String artista = desescapar(valorLibre(meta, "dc:creator"));
+        String album = desescapar(valorLibre(meta, "upnp:album"));
+        String portada = desescapar(valorLibre(meta, "upnp:albumArtURI"));
+        if (portada != null && portada.startsWith("/")) portada = "http://" + ip + ":1400" + portada;
+        try {
+            org.json.JSONObject j = new org.json.JSONObject();
+            j.put("estado", estado == null ? "" : estado);
+            j.put("titulo", titulo == null ? "" : titulo);
+            j.put("artista", artista == null ? "" : artista);
+            j.put("album", album == null ? "" : album);
+            j.put("portada", portada == null ? "" : portada);
+            j.put("pos", segundos(valor(pos, "RelTime")));
+            j.put("dur", segundos(valor(pos, "TrackDuration")));
+            return j.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private static String desescapar(String t) {
+        if (t == null) return null;
+        return t.replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'").replace("&amp;", "&");
+    }
+
+    private static String valorLibre(String xml, String etiqueta) {
+        if (xml == null) return null;
+        Matcher m = Pattern.compile("<" + Pattern.quote(etiqueta) + "(?:\\s[^>]*)?>(.*?)</" + Pattern.quote(etiqueta) + ">", Pattern.DOTALL).matcher(xml);
+        return m.find() ? m.group(1).trim() : null;
+    }
+
+    private static int segundos(String t) {
+        if (t == null) return 0;
+        try {
+            String[] p = t.split(":");
+            int s = 0;
+            for (String x : p) s = s * 60 + Integer.parseInt(x.trim());
+            return s;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
     /** Nombres de los cuartos Sonos que hay en la casa, separados por "|". */
     synchronized String cuartos() {
         if (bocinas.isEmpty()) buscar();
