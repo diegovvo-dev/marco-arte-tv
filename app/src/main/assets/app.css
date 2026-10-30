@@ -274,3 +274,6 @@ body { font-family: var(--texto); -webkit-font-smoothing: antialiased; cursor: n
 #musica-tiempos { display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between;
   margin-top: .5vh; font-size: 1.45vh; font-weight: 500; opacity: .75; font-variant-numeric: tabular-nums; }
 #musica-portada { width: 8.6vh; height: 8.6vh; }
+
+/* Spotify pegado abajo a la derecha, alineado con la cartela de la izquierda */
+#musica { left: auto; right: 3.2vw; bottom: 5vh; -webkit-transform: none; transform: none; }
