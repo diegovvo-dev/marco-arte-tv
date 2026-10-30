@@ -118,9 +118,9 @@ body { font-family: var(--texto); -webkit-font-smoothing: antialiased; cursor: n
 #app.vidrio #sala { display: block; }
 #app.vidrio #lienzo { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
 #app.vidrio .marco { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; border: 0; box-shadow: none; }
-#app.vidrio .marco img { object-fit: cover; }
+#app.vidrio .marco img { object-fit: cover; object-position: 50% 85%; } /* recorta sobre todo de arriba */
 #app.vidrio.completa #atmosfera { display: block; }
-#app.vidrio.completa .marco img { object-fit: contain; }
+#app.vidrio.completa .marco img { object-fit: contain; object-position: 50% 50%; }
 #app.vidrio #espera .espera-titulo { color: #fff; }
 #app.vidrio #columna { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: auto; height: auto; padding: 0; display: block; pointer-events: none; z-index: 2; }
 
