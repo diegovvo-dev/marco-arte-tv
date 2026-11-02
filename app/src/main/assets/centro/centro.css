@@ -351,6 +351,7 @@ html, body { position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
 .lista .color, .lista li.pasado .color { opacity: 1 !important; width: 6px; }
 
 /* Privacidad: contenido borroso, el título queda visible */
-.tarjeta.oculto .lista { -webkit-filter: blur(16px); filter: blur(16px); opacity: .7; }
-.tarjeta.oculto h2 .derecha { visibility: hidden; }
-.tarjeta .lista { transition: filter .35s ease, -webkit-filter .35s ease, opacity .35s ease; }
+.tarjeta.oculto .lista .cuando, .tarjeta.oculto .lista .que, .tarjeta.oculto .lista small, .tarjeta.oculto .lista .vacio {
+  -webkit-filter: blur(9px); filter: blur(9px); }
+.tarjeta.oculto h2 .derecha { -webkit-filter: blur(7px); filter: blur(7px); }
+.lista .cuando, .lista .que, .lista small, .lista .vacio, .tarjeta h2 .derecha { transition: filter .35s ease, -webkit-filter .35s ease; }

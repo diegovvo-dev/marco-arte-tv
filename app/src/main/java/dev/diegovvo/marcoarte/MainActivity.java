@@ -344,6 +344,38 @@ public class MainActivity extends Activity {
         super.onResume();
         web.onResume();
         ocultarBarras();
+        if (!esCentro()) avisarEncendido(true);
+    }
+
+    @Override
+    protected void onStop() {
+        if (!esCentro()) avisarEncendido(false);
+        super.onStop();
+    }
+
+    /** La Sharp le dice a la tele vertical si está prendida (la app se ve) o apagada. */
+    private void avisarEncendido(final boolean prendida) {
+        final String ip;
+        try {
+            ip = new org.json.JSONObject(leerArchivo(new File(carpeta(), "config.json"))).optString("centroIp", "");
+        } catch (Exception e) { return; }
+        if (ip.isEmpty()) return;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL("http://" + ip + ":8765/tele").openConnection();
+                    c.setConnectTimeout(4000); c.setReadTimeout(4000);
+                    c.setRequestMethod("POST"); c.setDoOutput(true);
+                    c.setRequestProperty("Content-Type", "application/json");
+                    byte[] b = ("{\"prendida\":" + prendida + ",\"enviado\":" + System.currentTimeMillis() + "}").getBytes("UTF-8");
+                    c.setFixedLengthStreamingMode(b.length);
+                    c.getOutputStream().write(b);
+                    c.getResponseCode();
+                    c.disconnect();
+                } catch (Exception ignorar) { }
+            }
+        }).start();
     }
 
     @Override

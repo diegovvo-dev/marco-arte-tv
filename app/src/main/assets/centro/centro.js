@@ -63,7 +63,7 @@
     aparatos: [
       { nombre: 'Laptop', icono: 'laptop', on: true, bateria: 66, carga: true, estado: '' },
       
-      { nombre: 'Marco Arte', icono: 'tele', on: true, estado: 'Las bodas de Caná' },
+      { nombre: 'TV', icono: 'tele', on: true, estado: 'Prendida' },
       { nombre: 'Sonos Diego', icono: 'bocina', on: true, estado: 'Sonando' },
       { nombre: 'iPhone', icono: 'telefono', on: true, bateria: 82, estado: '' },
       { nombre: 'iPad', icono: 'tablet', on: false, estado: 'Sin conexión' }
@@ -704,8 +704,15 @@
     (CONFIG.aparatos || []).forEach(function (a) {
       var on = vivos[a.ip];
       var estado = on === undefined ? 'Revisando…' : on ? 'En línea' : 'Sin conexión';
-      if (a.icono === 'tele' && on && tele && tele.obra) estado = tele.obra;
       var item = { nombre: a.nombre, icono: a.icono || 'tele', on: on !== false, estado: estado };
+      if ((a.icono || 'tele') === 'tele') {
+        // La Sharp avisa al prenderse/apagarse y cada 2 min mientras se ve
+        var t = tele && tele.enviado ? new Date(tele.enviado).getTime() : 0;
+        var prendida = !!tele && tele.prendida !== false && ahora - t < 6 * 60000 && on !== false;
+        item.nombre = 'TV';
+        item.on = prendida;
+        item.estado = prendida ? 'Prendida' : 'Apagada';
+      }
       if (a.icono === 'tablet' && ipadDatos) {
         var reciente = ahora - new Date(ipadDatos.enviado || 0) < 45 * 60000;
         if (reciente) item.on = true;

@@ -326,14 +326,17 @@
   // Le cuenta al centro de control (la otra tele) qué obra se está mostrando.
   var centroIp = null;
   try { var cfg = JSON.parse((window.Android && Android.leer && Android.leer('config')) || '{}'); centroIp = cfg.centroIp || null; } catch (e) {}
+  var ultimaObra = null;
+  setInterval(function () { if (!document.hidden && ultimaObra) avisarCentro(ultimaObra); }, 2 * 60 * 1000);
   function avisarCentro(o) {
-    if (!centroIp) return;
+    ultimaObra = o;
+    if (!centroIp || document.hidden) return;
     try {
       var x = new XMLHttpRequest();
       x.open('POST', 'http://' + centroIp + ':8765/tele', true);
       x.setRequestHeader('Content-Type', 'application/json');
       x.timeout = 5000;
-      x.send(JSON.stringify({ obra: o.title || '', artista: o.artist_title || '', enviado: new Date().toISOString() }));
+      x.send(JSON.stringify({ prendida: true, obra: o.title || '', artista: o.artist_title || '', enviado: Date.now() }));
     } catch (e) {}
   }
 
