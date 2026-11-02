@@ -68,6 +68,7 @@ Invoke-WebRequest 'https://github.com/diegovvo-dev/marco-arte-tv/releases/latest
 
 function Conectar($dir, $nombre, $archivo) {
     Paso "Conectando con $nombre ($dir)"
+    & $adb disconnect "${dir}:5555" 2>$null | Out-Null
     & $adb connect "${dir}:5555" | Out-Null
     $estado = (& $adb -s "${dir}:5555" get-state 2>$null)
     if ($estado -ne 'device') {
