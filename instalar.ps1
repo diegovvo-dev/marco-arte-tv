@@ -122,7 +122,7 @@ function Instalar($tele, $modo, $config) {
 }
 
 # ---------- Sharp: Marco Arte
-$sharp = Conectar $ip 'la Sharp (Marco Arte)' 'ip-tele.txt'
+$sharp = Conectar $ip 'la Sharp (Marco Arte)' 'ip-tele.txt' | Where-Object { $_ -match ':5555$' } | Select-Object -Last 1
 if ($sharp) {
     $cfgSharp = @{ centroIp = $(if ($hayCentro) { $ipCentro } else { '' }) }
     Instalar $sharp 'arte' $cfgSharp
@@ -212,7 +212,7 @@ if ($sharp) {
 
 # ---------- Tele vertical: centro de control
 if ($hayCentro) {
-    $centro = Conectar $ipCentro 'la tele vertical (centro de control)' 'ip-centro.txt'
+    $centro = Conectar $ipCentro 'la tele vertical (centro de control)' 'ip-centro.txt' | Where-Object { $_ -match ':5555$' } | Select-Object -Last 1
     if ($centro) {
         $aparatos = @(@{ nombre = 'Marco Arte'; icono = 'tele'; ip = $ip })
         if ($usuario.PSObject.Properties.Name -contains 'aparatos') { $aparatos += @($usuario.aparatos) }
