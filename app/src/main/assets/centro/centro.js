@@ -38,7 +38,7 @@
       horas: [{ h: 'Ahora', i: 'luna', t: 17 }, { h: '3 a. m.', i: 'luna', t: 15 }, { h: '6 a. m.', i: 'nube', t: 13 },
               { h: '9 a. m.', i: 'parcial', t: 17 }, { h: '12 p. m.', i: 'sol', t: 23 }, { h: '3 p. m.', i: 'sol', t: 25 }] },
     alarma: enDias(1, 7, 0),
-    cuenta: { titulo: 'Madrid', fecha: new Date(2027, 0, 7), clases: new Date(2027, 0, 14) },
+    cuenta: { titulo: 'Madrid', fecha: new Date(2027, 0, 9), clases: new Date(2027, 0, 14) },
     eventos: [
       { ini: hoyA(9, 0), fin: hoyA(10, 30), titulo: 'Taller de Algoritmos y Programación', lugar: 'IBERO' },
       { ini: hoyA(13, 0), fin: hoyA(14, 0), titulo: 'Comida con distribuidor', lugar: 'Polanco' },
@@ -584,12 +584,23 @@
     if (!j) return;
     D.iphone = j;
     var lista = Array.isArray(j.recordatorios) ? j.recordatorios : String(j.recordatorios || '').split('\n');
+    var ahora = new Date(), hoy0 = new Date(); hoy0.setHours(0, 0, 0, 0);
+    var DIAS_C = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
     D.pendientes = lista.map(function (x) {
       if (typeof x === 'object') return x;
       var p = String(x).split('|');
-      var vence = (p[1] || '').trim();
-      return { titulo: p[0].trim(), vence: vence, urgente: /hoy|vencid|ayer/i.test(vence) };
-    }).filter(function (x) { return x.titulo; });
+      var titulo = (p[0] || '').trim(), vence = (p.slice(1).join('|') || '').trim();
+      var m = /(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?/.exec(vence);
+      if (!m) return { titulo: titulo, vence: vence, urgente: /hoy|vencid|ayer/i.test(vence), orden: 9e15 };
+      var conHora = m[4] != null && !(m[4] === '00' && m[5] === '00');
+      var f = new Date(+m[1], +m[2] - 1, +m[3], conHora ? +m[4] : 23, conHora ? +m[5] : 59);
+      var dia = new Date(+m[1], +m[2] - 1, +m[3]);
+      var dif = Math.round((dia - hoy0) / 86400000);
+      var hora = conHora ? ' ' + hora12(f, true) : '';
+      var txt = f < ahora ? 'Vencido' : dif === 0 ? 'Hoy' + hora : dif === 1 ? 'Mañana' + hora :
+        dif < 7 ? DIAS_C[dia.getDay()] + ' ' + dia.getDate() + hora : dia.getDate() + ' de ' + MESES[dia.getMonth()];
+      return { titulo: titulo, vence: txt, urgente: f < ahora || dif === 0, orden: f.getTime() };
+    }).filter(function (x) { return x.titulo; }).sort(function (a, b) { return (a.orden || 9e15) - (b.orden || 9e15); });
     D.alarma = proximaAlarma(j.alarmas);
     D.iphoneVisto = new Date(j.enviado || Date.now());
     repintar();
@@ -701,9 +712,9 @@
     var cfg = leerJSON('config');
     if (cfg) for (var k in cfg) CONFIG[k] = cfg[k];
     function fechaISO(t) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
-    var vuelo = fechaISO(CONFIG.madrid) || new Date(2027, 0, 7);
+    var vuelo = fechaISO(CONFIG.madrid) || new Date(2027, 0, 9);
     var clases = fechaISO(CONFIG.clases) || new Date(2027, 0, 14);
-    D.cuenta = { titulo: 'Madrid', fecha: vuelo, nota: 'Vuelo · 7 de enero', clases: clases };
+    D.cuenta = { titulo: 'Madrid', fecha: vuelo, clases: clases };
     leerIphone(); leerClaude();
     actualizarClima(); setInterval(actualizarClima, 20 * 60000);
     actualizarCambio(); setInterval(actualizarCambio, 2 * 3600000);
