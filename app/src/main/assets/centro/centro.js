@@ -572,17 +572,37 @@
 
   // iPhone: el Atajo manda recordatorios, alarmas y batería al buzón de la tele
   // Formato: {"recordatorios": "Título | vence\n…", "alarmas": "7:00 a.m.\n…", "bateria": 82}
+  // Días en que se repite una alarma: "lun. y mié.", "Lunes, Miércoles", "Todos los días", "Entre semana", "Mon, Wed"...
+  function diasDeAlarma(t) {
+    t = String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (!t.trim() || /nunca|never|una vez/.test(t)) return null;
+    if (/todos|diari|cada dia|every ?day|daily/.test(t)) return [0,1,2,3,4,5,6];
+    if (/entre semana|weekday|laborable/.test(t)) return [1,2,3,4,5];
+    if (/fin(es)? de semana|weekend/.test(t)) return [0,6];
+    var claves = [['dom','sun'],['lun','mon'],['mar','tue'],['mie','wed'],['jue','thu'],['vie','fri'],['sab','sat']];
+    var dias = [];
+    claves.forEach(function (c, i) { if (c.some(function (k) { return new RegExp('\\b' + k).test(t); })) dias.push(i); });
+    return dias.length ? dias : null;
+  }
   function proximaAlarma(texto) {
     var ahora = new Date(), mejor = null;
-    String(texto || '').split(/\n|,/).forEach(function (l) {
-      var m = /(\d{1,2})[:.](\d{2})\s*([ap])?\.?\s*m?\.?/i.exec(l);
+    var lineas = String(texto || '').split('\n');
+    if (lineas.length === 1 && lineas[0].indexOf('|') < 0) lineas = lineas[0].split(',');
+    lineas.forEach(function (l) {
+      var partes = l.split('|');
+      var m = /(\d{1,2})[:.](\d{2})\s*([ap])?\.?\s*m?\.?/i.exec(partes[0]);
       if (!m) return;
       var h = +m[1], min = +m[2], ap = (m[3] || '').toLowerCase();
       if (ap === 'p' && h < 12) h += 12;
       if (ap === 'a' && h === 12) h = 0;
-      var d = new Date(); d.setHours(h, min, 0, 0);
-      if (d <= ahora) d.setDate(d.getDate() + 1);
-      if (!mejor || d < mejor) mejor = d;
+      var dias = diasDeAlarma(partes.slice(1).join(' '));
+      for (var k = 0; k < 8; k++) {
+        var d = new Date(); d.setDate(d.getDate() + k); d.setHours(h, min, 0, 0);
+        if (d <= ahora) continue;
+        if (dias && dias.indexOf(d.getDay()) < 0) continue;
+        if (!mejor || d < mejor) mejor = d;
+        break;
+      }
     });
     return mejor;
   }
