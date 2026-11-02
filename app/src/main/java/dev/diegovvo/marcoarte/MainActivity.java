@@ -27,9 +27,18 @@ public class MainActivity extends Activity {
     private Sonos sonos;
     private Buzon buzon;
 
+    /** Para el vigía: si la app existe, si se ve en pantalla y si saliste tú con Inicio. */
+    static volatile boolean vivo = false, enPantalla = false, salioUsuario = false;
+
+    private void mostrando(boolean si) {
+        getSharedPreferences("estado", MODE_PRIVATE).edit().putBoolean("mostrando", si).apply();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        vivo = true;
+        Bitacora.anotar(this, "app abierta");
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
                 | WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
@@ -43,7 +52,15 @@ public class MainActivity extends Activity {
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
         web.setBackgroundColor(0xFF1B1D1A);
-        web.setWebViewClient(new WebViewClient());
+        web.setWebViewClient(new WebViewClient() {
+            // Si el motor de la página se cae (poca memoria), se reabre la pantalla en vez de cerrar la app
+            @Override
+            public boolean onRenderProcessGone(WebView v, android.webkit.RenderProcessGoneDetail d) {
+                Bitacora.anotar(MainActivity.this, "la página se cayó; reabriendo");
+                recreate();
+                return true;
+            }
+        });
         web.setFocusable(true);
         web.setFocusableInTouchMode(true);
 
@@ -342,13 +359,27 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        enPantalla = true;
+        salioUsuario = false;
+        mostrando(true);
+        Bitacora.anotar(this, "se ve en pantalla");
         web.onResume();
         ocultarBarras();
         if (!esCentro()) avisarEncendido(true);
     }
 
     @Override
+    protected void onUserLeaveHint() {
+        // Le picaste a Inicio (o abriste otra app): no la vuelvas a abrir hasta que se prenda la tele
+        salioUsuario = true;
+        mostrando(false);
+        Bitacora.anotar(this, "saliste con Inicio");
+        super.onUserLeaveHint();
+    }
+
+    @Override
     protected void onStop() {
+        Bitacora.anotar(this, "dejó de verse");
         if (!esCentro()) avisarEncendido(false);
         super.onStop();
     }
@@ -380,12 +411,15 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        vivo = false;
+        enPantalla = false;
         if (buzon != null) buzon.detener();
         super.onDestroy();
     }
 
     @Override
     protected void onPause() {
+        enPantalla = false;
         web.onPause();
         super.onPause();
     }

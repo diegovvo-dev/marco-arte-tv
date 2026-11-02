@@ -99,8 +99,16 @@ function Conectar($dir, $nombre, $archivo) {
 }
 
 function Instalar($tele, $modo, $config) {
+    # Guarda la bitacora de la tele (para revisar si la app se cerro o parpadeo)
+    & $adb -s $tele pull "$destino/bitacora.txt" (Join-Path $carpeta "bitacora-$modo.txt") 2>$null | Out-Null
     Paso 'Instalando la app'
     & $adb -s $tele install -r 'marco-arte-tv.apk'
+    # Que el Fire TV nunca ponga su protector de pantalla ni se duerma solo mientras la tele este prendida
+    & $adb -s $tele shell settings put secure screensaver_enabled 0 | Out-Null
+    & $adb -s $tele shell settings put secure screensaver_activate_on_sleep 0 | Out-Null
+    & $adb -s $tele shell settings put secure screensaver_activate_on_dock 0 | Out-Null
+    & $adb -s $tele shell settings put system screen_off_timeout 2147483647 | Out-Null
+    & $adb -s $tele shell settings put secure sleep_timeout 0 | Out-Null
     # Permiso para que la app se abra sola al prender la tele
     & $adb -s $tele shell appops set $paquete SYSTEM_ALERT_WINDOW allow | Out-Null
     & $adb -s $tele shell cmd deviceidle whitelist +$paquete | Out-Null

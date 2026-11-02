@@ -9,6 +9,7 @@ public class Arranque extends BroadcastReceiver {
     @Override
     public void onReceive(Context c, Intent i) {
         Vigia.iniciar(c);
-        Vigia.abrirApp(c);
+        Bitacora.anotar(c, "Fire TV encendido");
+        Vigia.abrirApp(c, "arranque");
     }
 }
