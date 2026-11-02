@@ -529,11 +529,18 @@
 
   // Calendarios de iCloud (links públicos, webcal:// → https://). Cada link trae su nombre;
   // el color sigue al de tu iPhone.
-  var COLORES = { casa: '#5aa9e6', trabajo: '#d84fe8', ibero: '#ef4b4b', 'cumpleaños': '#f2cf45', europa: '#f3f3f1', 'los primos': '#f0913a' };
+  // Colores iguales a los de tu iPhone. Se compara sin acentos ni ñ, por si el nombre llega "roto".
+  var COLORES = [
+    ['cumple', '#ffcc00'], ['primos', '#ff9500'], ['ibero', '#ff3b30'], ['trabajo', '#cc4de8'],
+    ['casa', '#1badf8'], ['europa', '#ffffff']
+  ];
+  function limpiar(t) {
+    return String(t || '').toLowerCase().normalize ? String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z ]/g, '') : String(t || '').toLowerCase();
+  }
   function colorDe(nombre) {
-    var n = (nombre || '').toLowerCase();
-    for (var k in COLORES) if (n.indexOf(k) >= 0) return COLORES[k];
-    return 'rgba(243,243,241,.5)';
+    var n = limpiar(nombre);
+    for (var i = 0; i < COLORES.length; i++) if (n.indexOf(COLORES[i][0]) >= 0) return COLORES[i][1];
+    return '#ffffff';
   }
   function actualizarCalendario() {
     var links = CONFIG.calendarios || (CONFIG.calendario ? [CONFIG.calendario] : []);

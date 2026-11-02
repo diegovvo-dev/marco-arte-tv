@@ -39,7 +39,7 @@ $hayCentro = $ipCentro -and $ipCentro -ne 'no'
 
 # ---------- Tu configuracion (se pregunta una sola vez; queda en marco-arte\config-usuario.json)
 $archivoUsuario = Join-Path $carpeta 'config-usuario.json'
-$usuario = if (Test-Path $archivoUsuario) { Get-Content $archivoUsuario -Raw | ConvertFrom-Json } else { New-Object PSObject }
+$usuario = if (Test-Path $archivoUsuario) { [IO.File]::ReadAllText($archivoUsuario, [Text.Encoding]::UTF8) | ConvertFrom-Json } else { New-Object PSObject }
 if ($hayCentro) {
     if (-not ($usuario.PSObject.Properties.Name -contains 'calendario') -and -not ($usuario.PSObject.Properties.Name -contains 'calendarios')) {
         $cal = (Read-Host 'Link publico de tu calendario de iCloud (webcal://...). Deja vacio si aun no lo tienes').Trim()
