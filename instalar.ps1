@@ -66,15 +66,32 @@ if (-not (Test-Path $adb)) {
 Paso 'Descargando la version mas nueva de Marco Arte'
 Invoke-WebRequest 'https://github.com/diegovvo-dev/marco-arte-tv/releases/latest/download/marco-arte-tv.apk' -OutFile 'marco-arte-tv.apk'
 
-function Conectar($dir, $nombre) {
+function Conectar($dir, $nombre, $archivo) {
     Paso "Conectando con $nombre ($dir)"
     & $adb connect "${dir}:5555" | Out-Null
     $estado = (& $adb -s "${dir}:5555" get-state 2>$null)
     if ($estado -ne 'device') {
         Write-Host "Si en la tele aparece 'Permitir depuracion', marca 'Siempre permitir' y dale OK." -ForegroundColor Yellow
-        Read-Host 'Luego presiona Enter aqui'
+        $null = Read-Host 'Luego presiona Enter aqui'
         & $adb connect "${dir}:5555" | Out-Null
         $estado = (& $adb -s "${dir}:5555" get-state 2>$null)
+    }
+    if ($estado -ne 'device' -and $archivo) {
+        Write-Host "No contesta $dir. Puede que la tele haya cambiado de IP." -ForegroundColor Yellow
+        Write-Host "En esa tele: Configuracion > Mi Fire TV > Acerca de > Red." -ForegroundColor Yellow
+        $nueva = (Read-Host 'Escribe la IP nueva (o solo Enter para saltar esta tele)').Trim()
+        if ($nueva) {
+            $dir = $nueva
+            GuardarTexto $archivo $dir
+            & $adb connect "${dir}:5555" | Out-Null
+            $estado = (& $adb -s "${dir}:5555" get-state 2>$null)
+            if ($estado -ne 'device') {
+                Write-Host "Si en la tele aparece 'Permitir depuracion', marca 'Siempre permitir' y dale OK." -ForegroundColor Yellow
+                $null = Read-Host 'Luego presiona Enter aqui'
+                & $adb connect "${dir}:5555" | Out-Null
+                $estado = (& $adb -s "${dir}:5555" get-state 2>$null)
+            }
+        }
     }
     if ($estado -ne 'device') { Write-Host "No pude conectar con $nombre. Revisa que este prendida y con Depuracion ADB activada." -ForegroundColor Red; return $null }
     return "${dir}:5555"
@@ -96,7 +113,7 @@ function Instalar($tele, $modo, $config) {
 }
 
 # ---------- Sharp: Marco Arte
-$sharp = Conectar $ip 'la Sharp (Marco Arte)'
+$sharp = Conectar $ip 'la Sharp (Marco Arte)' 'ip-tele.txt'
 if ($sharp) {
     $cfgSharp = @{ centroIp = $(if ($hayCentro) { $ipCentro } else { '' }) }
     Instalar $sharp 'arte' $cfgSharp
@@ -186,7 +203,7 @@ if ($sharp) {
 
 # ---------- Tele vertical: centro de control
 if ($hayCentro) {
-    $centro = Conectar $ipCentro 'la tele vertical (centro de control)'
+    $centro = Conectar $ipCentro 'la tele vertical (centro de control)' 'ip-centro.txt'
     if ($centro) {
         $aparatos = @(@{ nombre = 'Marco Arte'; icono = 'tele'; ip = $ip })
         if ($usuario.PSObject.Properties.Name -contains 'aparatos') { $aparatos += @($usuario.aparatos) }
