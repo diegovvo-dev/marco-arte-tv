@@ -62,11 +62,10 @@
     musica: { titulo: 'Vagabundo', artista: 'Sebastián Yatra, Manuel Turizo, Beéle', pos: 83, dur: 215, leido: Date.now(), sonando: true, portada: '' },
     aparatos: [
       { nombre: 'Laptop', icono: 'laptop', on: true, bateria: 66, carga: true, estado: '' },
-      
-      { nombre: 'TV', icono: 'tele', on: true, estado: 'Prendida' },
-      { nombre: 'Sonos Diego', icono: 'bocina', on: true, estado: 'Sonando' },
+      { nombre: 'iPad', icono: 'tablet', on: true, bateria: 54, estado: '' },
       { nombre: 'iPhone', icono: 'telefono', on: true, bateria: 82, estado: '' },
-      { nombre: 'iPad', icono: 'tablet', on: false, estado: 'Sin conexión' }
+      { nombre: 'Sonos Diego', icono: 'bocina', on: true, estado: 'Sonando' },
+      { nombre: 'TV', icono: 'tele', on: true, estado: 'Prendida' }
     ],
     divisas: [{ k: 'USD', v: 18.42, cambio: 0.31 }, { k: 'EUR', v: 21.39, cambio: -0.18 }, { k: 'GBP', v: 24.87, cambio: 0.05 }],
     actualizado: new Date()
@@ -726,6 +725,9 @@
     var iOn = !!D.iphone && ahora - D.iphoneVisto < 3 * 3600000;
     lista.push({ nombre: 'iPhone', icono: 'telefono', on: iOn, bateria: iOn ? pct(D.iphone.bateria) : null, carga: iOn && siCarga(D.iphone.cargando),
       estado: D.iphone ? 'Sin conexión' : 'Falta el Atajo' });
+    // Orden: arriba Laptop, iPad, iPhone; abajo Sonos y TV
+    var ORDEN = { laptop: 0, tablet: 1, telefono: 2, bocina: 3, tele: 4 };
+    lista.sort(function (x, y) { return (ORDEN[x.icono] != null ? ORDEN[x.icono] : 9) - (ORDEN[y.icono] != null ? ORDEN[y.icono] : 9); });
     D.aparatos = lista.slice(0, 6);
     revisarPilas(D.aparatos);
   }
