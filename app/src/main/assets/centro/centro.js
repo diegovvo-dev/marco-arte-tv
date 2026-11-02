@@ -334,6 +334,8 @@
     if (g.liquido != null && g.v === 2) ajustes.liquido = g.liquido;
     if (g.tamano != null) ajustes.tamano = g.tamano;
     if (typeof g.segundos === 'boolean') ajustes.segundos = g.segundos;
+    if (typeof g.ocultarPend === 'boolean') ajustes.ocultarPend = g.ocultarPend;
+    if (typeof g.ocultarCal === 'boolean') ajustes.ocultarCal = g.ocultarCal;
   } catch (e) {}
   function guardar() { try { localStorage.setItem('centro.ajustes', JSON.stringify(ajustes)); } catch (e) {} }
 
@@ -377,6 +379,23 @@
   }
 
   // Botones del control. La app de Android manda ☰ como window.alMenu() y Atrás como window.alAtras().
+  // Privacidad: ◀ hace borrosos los pendientes, ▶ el calendario (se queda así aunque se apague la tele)
+  var tAviso;
+  function avisar(t) {
+    var a = $('aviso'); if (!a) return;
+    a.textContent = t; a.classList.add('visible');
+    clearTimeout(tAviso); tAviso = setTimeout(function () { a.classList.remove('visible'); }, 1800);
+  }
+  function aplicarPrivacidad() {
+    $('t-pendientes').classList.toggle('oculto', !!ajustes.ocultarPend);
+    $('t-hoy').classList.toggle('oculto', !!ajustes.ocultarCal);
+  }
+  function alternar(clave, oculto, visible) {
+    ajustes[clave] = !ajustes[clave]; guardar(); aplicarPrivacidad();
+    avisar(ajustes[clave] ? oculto : visible);
+  }
+  aplicarPrivacidad();
+
   window.alMenu = function () { if (panelAbierto) cerrarPanel(); else abrirPanel(); };
   window.alAtras = function () {
     if (alertaActual) { cerrarAlerta(); return true; }
@@ -387,7 +406,12 @@
     var k = e.key, c = e.keyCode;
     if (k === 'ContextMenu' || c === 93 || c === 82) { e.preventDefault(); window.alMenu(); return; }
     if (alertaActual && (k === 'Escape' || k === 'Backspace' || c === 27 || c === 8)) { e.preventDefault(); cerrarAlerta(); return; }
-    if (!panelAbierto) return;
+    if (!panelAbierto) {
+      if (alertaActual) return;
+      if (k === 'ArrowLeft' || c === 37) { e.preventDefault(); alternar('ocultarPend', 'Pendientes ocultos', 'Pendientes visibles'); }
+      else if (k === 'ArrowRight' || c === 39) { e.preventDefault(); alternar('ocultarCal', 'Calendario oculto', 'Calendario visible'); }
+      return;
+    }
     e.preventDefault();
     if (k === 'ArrowUp' || c === 38) { filaActiva = (filaActiva + FILAS.length - 1) % FILAS.length; pintarPanel(); }
     else if (k === 'ArrowDown' || c === 40) { filaActiva = (filaActiva + 1) % FILAS.length; pintarPanel(); }

@@ -349,3 +349,8 @@ html, body { position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
 .lista li.pasado { opacity: 1 !important; }
 .lista li.pasado .cuando, .lista li.pasado .que { opacity: .4; }
 .lista .color, .lista li.pasado .color { opacity: 1 !important; width: 6px; }
+
+/* Privacidad: contenido borroso, el título queda visible */
+.tarjeta.oculto .lista { -webkit-filter: blur(16px); filter: blur(16px); opacity: .7; }
+.tarjeta.oculto h2 .derecha { visibility: hidden; }
+.tarjeta .lista { transition: filter .35s ease, -webkit-filter .35s ease, opacity .35s ease; }
