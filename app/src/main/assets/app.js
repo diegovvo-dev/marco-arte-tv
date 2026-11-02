@@ -327,7 +327,7 @@
   var centroIp = null;
   try { var cfg = JSON.parse((window.Android && Android.leer && Android.leer('config')) || '{}'); centroIp = cfg.centroIp || null; } catch (e) {}
   var ultimaObra = null;
-  setInterval(function () { if (!document.hidden && ultimaObra) avisarCentro(ultimaObra); }, 2 * 60 * 1000);
+  setInterval(function () { if (!document.hidden && ultimaObra) avisarCentro(ultimaObra); }, 60 * 1000);
   function avisarCentro(o) {
     ultimaObra = o;
     if (!centroIp || document.hidden) return;

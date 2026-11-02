@@ -6,7 +6,7 @@
 #  2. Descarga la version mas nueva de la app desde GitHub.
 #  3. Sharp (Marco Arte): instala, copia tus fotos de marco-arte\fotos y conecta Spotify la primera vez.
 #  4. Tele vertical (centro de control): instala y le pasa tu configuracion (calendario, Madrid, aparatos).
-#  5. Deja programado que la laptop mande su bateria al centro cada 5 minutos.
+#  5. Deja programado que la laptop mande su bateria al centro cada minuto.
 #  6. Abre la app en las teles.
 # Nada de esto sube tus fotos ni tus datos a internet: todo va directo por el Wi-Fi de la casa.
 
@@ -218,7 +218,7 @@ if ($hayCentro) {
         }
         Instalar $centro 'centro' $cfgCentro
 
-        # La laptop manda su bateria al centro cada 5 minutos (sin ventanas)
+        # La laptop manda su bateria al centro cada minuto (sin ventanas)
         Paso 'Programando el envio de la bateria de la laptop'
         $scriptLaptop = @'
 $c = Join-Path $env:USERPROFILE 'marco-arte'
@@ -238,11 +238,11 @@ if (Test-Path $cl) {
         [IO.File]::WriteAllText((Join-Path $carpeta 'laptop.ps1'), $scriptLaptop, $utf8)
         try {
             $accion = New-ScheduledTaskAction -Execute 'conhost.exe' -Argument ('--headless powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' + (Join-Path $carpeta 'laptop.ps1') + '"')
-            $cuando = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5) -RepetitionDuration (New-TimeSpan -Days 3650)
+            $cuando = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Days 3650)
             $reglas = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
             Register-ScheduledTask -TaskName 'Marco Arte - laptop' -Action $accion -Trigger $cuando -Settings $reglas -Force | Out-Null
             & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $carpeta 'laptop.ps1')
-            Write-Host '  Listo: la laptop avisa su bateria cada 5 minutos.'
+            Write-Host '  Listo: la laptop avisa su bateria cada minuto.'
         } catch {
             Write-Host "  No se pudo programar la tarea de la laptop: $($_.Exception.Message)" -ForegroundColor Yellow
         }

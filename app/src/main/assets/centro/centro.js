@@ -696,7 +696,7 @@
     function pct(v) { return v == null || v === '' ? null : Math.round(+v > 1 ? +v : +v * 100); }
     function siCarga(v) { return v === true || v === 'true' || v === 1 || v === 'Sí' || v === 'Si' || v === 'Yes'; }
     var lap = leerJSON('laptop');
-    var lapOn = !!lap && ahora - new Date(lap.enviado || 0) < 12 * 60000;
+    var lapOn = !!lap && ahora - new Date(lap.enviado || 0) < 3 * 60000;
     lista.push({ nombre: 'Laptop', icono: 'laptop', on: lapOn, bateria: lapOn ? pct(lap.bateria) : null, carga: lapOn && siCarga(lap.cargando),
       estado: lapOn ? '' : 'Sin conexión' });
     var ipadDatos = leerJSON('ipad');
@@ -708,7 +708,7 @@
       if ((a.icono || 'tele') === 'tele') {
         // La Sharp avisa al prenderse/apagarse y cada 2 min mientras se ve
         var t = tele && tele.enviado ? new Date(tele.enviado).getTime() : 0;
-        var prendida = !!tele && tele.prendida !== false && ahora - t < 6 * 60000 && on !== false;
+        var prendida = !!tele && tele.prendida !== false && ahora - t < 3 * 60000 && on !== false;
         item.nombre = 'TV';
         item.on = prendida;
         item.estado = prendida ? 'Prendida' : 'Apagada';
@@ -778,8 +778,8 @@
     actualizarCambio(); setInterval(actualizarCambio, 2 * 3600000);
     actualizarCalendario(); setInterval(actualizarCalendario, 10 * 60000);
     actualizarSonos(); setInterval(actualizarSonos, 5000);
-    actualizarPresencia(); setInterval(actualizarPresencia, 60000);
-    setInterval(function () { leerIphone(); repintar(); }, 60000);
+    actualizarPresencia(); setInterval(actualizarPresencia, 20000);
+    setInterval(function () { leerIphone(); repintar(); }, 30000);
     repintar();
   }
 
