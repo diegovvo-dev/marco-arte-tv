@@ -291,3 +291,6 @@ body { font-family: var(--texto); -webkit-font-smoothing: antialiased; cursor: n
 /* Capas fijas en la GPU para que los cambios de obra no parpadeen */
 .marco, #atmosfera .capa { will-change: opacity; -webkit-backface-visibility: hidden; backface-visibility: hidden; -webkit-transform: translateZ(0); transform: translateZ(0); }
 #reloj, #cartela, #musica { -webkit-transform: translateZ(0); transform: translateZ(0); }
+
+/* Sin cartela (Mis fotos y Playita en vivo) */
+#cartela.sin, #app.vidrio #cartela.sin { opacity: 0 !important; visibility: hidden; }

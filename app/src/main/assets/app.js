@@ -328,7 +328,8 @@
       $('obra-tecnica').textContent = traducirTecnica(o.medium_display);
       $('obra-credito').textContent = o.foto ? (o.credito || '') : o.credito ? '♥ ' + o.credito :
         'Art Institute of Chicago' + (o.main_reference_number ? ' · Núm. ' + o.main_reference_number : '');
-      c.className = '';
+      // La cartela solo sale en Obras de arte; en tus fotos y en Playita en vivo no
+      c.className = o.favorita ? '' : 'sin';
     }, 700);
   }
 
