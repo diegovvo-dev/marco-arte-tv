@@ -445,10 +445,26 @@
     if (!o || !SOL[n]) { avisar('Faltan las imágenes de Playita en vivo'); return; }
     cargando = true;
     mostrarObra(o).then(function () { cargando = false; }, function () { cargando = false; });
+    // Si no la fijas, a los 30 segundos regresa sola a la imagen de la hora
+    clearTimeout(regresoSol);
+    regresoSol = setTimeout(function () { if (!pausado) volverAlSol(); }, 30 * 1000);
+  }
+  var regresoSol = null;
+  function volverAlSol() {
+    clearTimeout(regresoSol);
+    if (!coleccionActual().sol || pausado) return;
+    var n = faseSolar(new Date());
+    faseVista = n;
+    if (obraActual && obraActual.fase === n) return;
+    var o = obraSol(n);
+    if (!o) return;
+    if (cargando) { setTimeout(volverAlSol, 1500); return; }
+    cargando = true;
+    mostrarObra(o).then(function () { cargando = false; }, function () { cargando = false; });
   }
   setInterval(function () {
     if (!coleccionActual().sol || pausado || cargando) return;
-    if (faseSolar(new Date()) !== faseVista) siguiente();
+    if (faseSolar(new Date()) !== faseVista) volverAlSol();
   }, 60 * 1000);
 
   function anterior() {
@@ -1030,6 +1046,7 @@
   function alternarPausa() {
     pausado = !pausado;
     if (pausado) { clearTimeout(temporizador); avisar('Obra fija. Mantén presionado <b>OK</b> otra vez para que vuelva a cambiar.', 4000); }
+    else if (coleccionActual().sol) { avisar('Vuelve a seguir al sol', 3000); volverAlSol(); }
     else { programar(); avisar('Las obras vuelven a cambiar solas', 3000); }
     guardarFija();
   }
