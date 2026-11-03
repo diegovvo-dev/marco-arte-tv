@@ -126,6 +126,27 @@ class Sonos {
     }
 
     /**
+     * Sube o baja el volumen del cuarto (solo ese cuarto; en un par estéreo mueve las dos).
+     * Devuelve el volumen nuevo (0–100) o -1 si no se pudo.
+     */
+    synchronized int volumen(String cuarto, int cambio) {
+        if (bocinas.isEmpty()) buscar();
+        String ip = bocinaDe(cuarto);
+        if (ip == null) { buscar(); ip = bocinaDe(cuarto); }
+        if (ip == null) return -1;
+        String r = soapServicio(ip, "/MediaRenderer/RenderingControl/Control", "RenderingControl", "SetRelativeVolume",
+                "<InstanceID>0</InstanceID><Channel>Master</Channel><Adjustment>" + cambio + "</Adjustment>");
+        String v = valor(r, "NewVolume");
+        try { return v == null ? -1 : Integer.parseInt(v.trim()); } catch (Exception e) { return -1; }
+    }
+
+    /** La bocina visible del cuarto (en un par estéreo, la que manda el volumen del par). */
+    private String bocinaDe(String cuarto) {
+        for (String[] m : miembros()) if (m[2].equalsIgnoreCase(cuarto.trim()) && !"1".equals(m[4])) return m[1];
+        return null;
+    }
+
+    /**
      * Lee cómo están agrupadas las bocinas (ZoneGroupTopology) y devuelve la IP de la bocina
      * que manda en el grupo donde está el cuarto pedido. En un par estéreo, la bocina
      * escondida ("Invisible") nunca recibe órdenes.

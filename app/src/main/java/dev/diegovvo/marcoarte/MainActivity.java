@@ -156,6 +156,21 @@ public class MainActivity extends Activity {
             }).start();
         }
 
+        /** Sube (+1) o baja (-1) el volumen del cuarto Sonos; responde con window.alVolumen(n). */
+        @JavascriptInterface
+        public void sonosVolumen(final String cuarto, final int cambio) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    final int v = sonos.volumen(cuarto, cambio);
+                    web.post(new Runnable() {
+                        @Override
+                        public void run() { js("window.alVolumen && alVolumen(" + v + ")"); }
+                    });
+                }
+            }).start();
+        }
+
         /** Busca los cuartos Sonos y los manda a la página con window.alCuartos("A|B|C"). */
         @JavascriptInterface
         public void sonosCuartos() {

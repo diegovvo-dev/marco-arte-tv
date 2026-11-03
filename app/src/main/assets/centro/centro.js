@@ -395,6 +395,17 @@
   }
   aplicarPrivacidad();
 
+  // Volumen del Sonos Diego: ▲ sube 1, ▼ baja 1
+  function volumen(cambio) {
+    if (window.Android && Android.sonosVolumen) Android.sonosVolumen(CONFIG.cuartoSonos || 'Diego', cambio);
+    else window.alVolumen((D.volumen || 20) + cambio);
+  }
+  window.alVolumen = function (v) {
+    if (v < 0) { avisar('No encontré el Sonos ' + (CONFIG.cuartoSonos || 'Diego')); return; }
+    D.volumen = v;
+    avisar('Volumen ' + v);
+  };
+
   window.alMenu = function () { if (panelAbierto) cerrarPanel(); else abrirPanel(); };
   window.alAtras = function () {
     if (alertaActual) { cerrarAlerta(); return true; }
@@ -409,6 +420,8 @@
       if (alertaActual) return;
       if (k === 'ArrowLeft' || c === 37) { e.preventDefault(); alternar('ocultarPend', 'Pendientes ocultos', 'Pendientes visibles'); }
       else if (k === 'ArrowRight' || c === 39) { e.preventDefault(); alternar('ocultarCal', 'Calendario oculto', 'Calendario visible'); }
+      else if (k === 'ArrowUp' || c === 38) { e.preventDefault(); volumen(1); }
+      else if (k === 'ArrowDown' || c === 40) { e.preventDefault(); volumen(-1); }
       return;
     }
     e.preventDefault();
@@ -720,7 +733,7 @@
       lista.push(item);
     });
     var sOn = D.sonosEstado !== '' && D.sonosEstado != null;
-    lista.push({ nombre: 'Sonos ' + (CONFIG.cuartoSonos || 'Diego'), icono: 'bocina', on: sOn || !D.sonosVisto,
+    lista.push({ nombre: 'Sonos ' + (CONFIG.cuartoSonos || 'Diego'), icono: 'bocina', on: !D.sonosVisto || D.sonosEstado === 'PLAYING' || D.sonosEstado === 'TRANSITIONING',
       estado: !D.sonosVisto ? 'Buscando…' : !sOn ? 'Sin conexión' : D.sonosEstado === 'PLAYING' ? 'Sonando' : 'En pausa' });
     var iOn = !!D.iphone && ahora - D.iphoneVisto < 3 * 3600000;
     lista.push({ nombre: 'iPhone', icono: 'telefono', on: iOn, bateria: iOn ? pct(D.iphone.bateria) : null, carga: iOn && siCarga(D.iphone.cargando),

@@ -355,3 +355,7 @@ html, body { position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
   -webkit-filter: blur(9px); filter: blur(9px); }
 .tarjeta.oculto h2 .derecha { -webkit-filter: blur(7px); filter: blur(7px); }
 .lista .cuando, .lista .que, .lista small, .lista .vacio, .tarjeta h2 .derecha { transition: filter .35s ease, -webkit-filter .35s ease; }
+
+/* Calendario: hora, evento y horario siempre en el mismo blanco, aunque ya haya pasado */
+#t-hoy .lista li.pasado .cuando, #t-hoy .lista li.pasado .que { opacity: 1 !important; }
+#t-hoy .lista .cuando, #t-hoy .lista .que, #t-hoy .lista .que small, #t-hoy .lista.manana .cuando { color: #fff !important; opacity: 1 !important; }
