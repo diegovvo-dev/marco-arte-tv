@@ -88,7 +88,7 @@
   var COLECCIONES = [
     { id: 'fotos', nombre: 'Mis fotos', fotos: true },
     { id: 'favoritas', nombre: 'Obras de arte', favoritas: true },
-    { id: 'sol', nombre: 'Sol de la Playita', sol: true }
+    { id: 'sol', nombre: 'Playita en vivo', sol: true }
   ];
 
   var CIUDADES = [
@@ -441,7 +441,7 @@
     if (cargando) return;
     var actual = (obraActual && obraActual.fase) || faseVista || 1;
     var n = ((actual - 1 + d + 6) % 6) + 1, o = obraSol(n);
-    if (!o || !SOL[n]) { avisar('Faltan las imágenes de Sol de la Playita'); return; }
+    if (!o || !SOL[n]) { avisar('Faltan las imágenes de Playita en vivo'); return; }
     cargando = true;
     mostrarObra(o).then(function () { cargando = false; }, function () { cargando = false; });
   }
