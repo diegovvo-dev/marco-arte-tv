@@ -276,7 +276,7 @@
     }
 
     if (D.claude && D.claude.temas && D.claude.temas.length) {
-      texto('claude-cuando', D.claude.cuando || '');
+      texto('claude-cuando', D.claude.fecha ? haceCuanto(D.claude.fecha) : (D.claude.cuando || ''));
       poner('claude', D.claude.temas.slice(0, 3).map(function (t) {
         return '<li>' + esc(t.titulo) + '<small>' + esc(t.nota || '') + '</small></li>';
       }).join(''));
@@ -659,7 +659,7 @@
   // Resumen de Claude (lo deja una tarea automática)
   function leerClaude() {
     var j = leerJSON('claude');
-    if (j && j.temas) { D.claude = { temas: j.temas, cuando: j.actualizado ? haceCuanto(new Date(j.actualizado)) : '' }; repintar(); }
+    if (j && j.temas) { D.claude = { temas: j.temas, fecha: j.actualizado ? new Date(j.actualizado) : null }; repintar(); }
   }
 
   // Sonos: qué suena en el cuarto, leído directo de la bocina
@@ -781,7 +781,7 @@
     actualizarCalendario(); setInterval(actualizarCalendario, 10 * 60000);
     actualizarSonos(); setInterval(actualizarSonos, 5000);
     actualizarPresencia(); setInterval(actualizarPresencia, 20000);
-    setInterval(function () { leerIphone(); repintar(); }, 30000);
+    setInterval(function () { leerIphone(); leerClaude(); repintar(); }, 30000);
     repintar();
   }
 
