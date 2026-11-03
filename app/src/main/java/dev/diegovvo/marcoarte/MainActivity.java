@@ -124,9 +124,14 @@ public class MainActivity extends Activity {
     /** Lo que la página puede pedirle a la app. */
     private class Puente {
         @JavascriptInterface
-        public String fotos() {
+        public String fotos() { return fotosDe("fotos"); }
+
+        /** Imágenes de una carpeta de la app: "fotos" (Mis fotos) o "sol" (Sol de la Playita). */
+        @JavascriptInterface
+        public String fotosDe(String nombre) {
+            if (!"fotos".equals(nombre) && !"sol".equals(nombre)) return "[]";
             JSONArray lista = new JSONArray();
-            File dir = new File(carpeta(), "fotos");
+            File dir = new File(carpeta(), nombre);
             File[] archivos = dir.listFiles();
             if (archivos == null) return "[]";
             Arrays.sort(archivos);

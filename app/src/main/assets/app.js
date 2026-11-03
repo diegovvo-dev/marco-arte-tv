@@ -37,17 +37,58 @@
   }
   cargarFotos();
 
+  // Sol de la Playita: 6 imágenes que siguen al sol (1-amanecer, 2-manana, 3-mediodia, 4-tarde, 5-atardecer, 6-noche).
+  // El instalador las copia de la carpeta marco-arte\sol de la compu.
+  var FASES = [
+    { n: 1, nombre: 'Amanecer' }, { n: 2, nombre: 'Mañana' }, { n: 3, nombre: 'Mediodía' },
+    { n: 4, nombre: 'Tarde' }, { n: 5, nombre: 'Atardecer' }, { n: 6, nombre: 'Noche' }
+  ];
+  var SOL = {};
+  (function cargarSol() {
+    var lista = [];
+    try { lista = JSON.parse((window.Android && Android.fotosDe && Android.fotosDe('sol')) || '[]'); } catch (e) { lista = []; }
+    lista.forEach(function (par) {
+      var i = par.indexOf('|'), m = /^(\d)/.exec(par);
+      if (!m) return;
+      var f = FASES[+m[1] - 1];
+      if (f) SOL[f.n] = { id: 'sol-' + f.n, foto: true, sol: true, fase: f.n, src: par.slice(i + 1),
+        title: f.nombre, artist_title: 'La Playita', credito: 'Mezcal Los Primos · cambia con el sol' };
+    });
+  })();
+
+  // Salida, mediodía y puesta del sol para una ciudad y un día (fórmulas de la NOAA, sin internet).
+  function horasDelSol(dia, lat, lon) {
+    var rad = Math.PI / 180;
+    var inicio = new Date(dia.getFullYear(), 0, 1);
+    var n = Math.floor((dia - inicio) / 86400000) + 1;
+    var g = 2 * Math.PI / 365 * (n - 1 + 0.5);
+    var ecuacion = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+    var decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+    var cosH = (Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(decl))) - Math.tan(lat * rad) * Math.tan(decl);
+    var H = Math.acos(Math.max(-1, Math.min(1, cosH))) / rad;
+    var medio0 = new Date(Date.UTC(dia.getFullYear(), dia.getMonth(), dia.getDate()));
+    function enUTC(min) { return new Date(medio0.getTime() + min * 60000); }
+    var mediodia = 720 - 4 * lon - ecuacion;
+    return { salida: enUTC(mediodia - 4 * H), mediodia: enUTC(mediodia), puesta: enUTC(mediodia + 4 * H) };
+  }
+  function faseSolar(ahora) {
+    var c = CIUDADES[ajustes.ciudad] || CIUDADES[0];
+    var h = horasDelSol(ahora, c.lat, c.lon), t = ahora.getTime(), m = 60000;
+    var s = { salida: h.salida.getTime(), mediodia: h.mediodia.getTime(), puesta: h.puesta.getTime() };
+    if (t >= s.salida - 45 * m && t < s.salida + 75 * m) return 1;      // amanecer
+    if (t >= s.salida + 75 * m && t < s.mediodia - 90 * m) return 2;    // mañana
+    if (t >= s.mediodia - 90 * m && t < s.mediodia + 150 * m) return 3; // mediodía
+    if (t >= s.mediodia + 150 * m && t < s.puesta - 60 * m) return 4;   // tarde
+    if (t >= s.puesta - 60 * m && t < s.puesta + 35 * m) return 5;      // atardecer
+    return 6;                                                            // noche
+  }
+  function obraSol(n) { return SOL[n] || SOL[6] || SOL[1] || null; }
+  var faseVista = 0;
+
   var COLECCIONES = [
-    { id: 'favoritas', nombre: 'Mis favoritas', favoritas: true },
     { id: 'fotos', nombre: 'Mis fotos', fotos: true },
-    { id: 'impresionismo', nombre: 'Impresionismo', q: 'impressionism', pintura: true },
-    { id: 'postimpresionismo', nombre: 'Van Gogh y postimpresionismo', q: 'post-impressionism', pintura: true },
-    { id: 'monet', nombre: 'Monet', q: 'Claude Monet', pintura: true },
-    { id: 'paisajes', nombre: 'Paisajes', q: 'landscape', pintura: true },
-    { id: 'retratos', nombre: 'Retratos', q: 'portrait', pintura: true },
-    { id: 'bodegones', nombre: 'Bodegones', q: 'still life', pintura: true },
-    { id: 'japones', nombre: 'Grabado japonés', q: 'ukiyo-e', pintura: false },
-    { id: 'mezcla', nombre: 'Todo mezclado', q: '', pintura: true }
+    { id: 'favoritas', nombre: 'Obras de arte', favoritas: true },
+    { id: 'sol', nombre: 'Sol de la Playita', sol: true }
   ];
 
   var CIUDADES = [
@@ -73,16 +114,13 @@
     { clave: 'posReloj', etiqueta: 'Lugar de la hora', opciones: [{ v: 'arriba', t: 'Arriba, como el iPhone' }, { v: 'centro', t: 'Centro de la pantalla' }] },
     { clave: 'ajuste', etiqueta: 'La obra', opciones: [{ v: 'llenar', t: 'Llenar la pantalla' }, { v: 'completa', t: 'Verla entera' }] },
     { clave: 'formato24', etiqueta: 'Hora', opciones: [{ v: false, t: '12 h (a. m. / p. m.)' }, { v: true, t: '24 h' }] },
-    { clave: 'misFotos', etiqueta: 'Mis fotos de vez en cuando', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
-    { clave: 'mezclarFavoritas', etiqueta: 'Mis favoritas de vez en cuando', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
-    { clave: 'horizontales', etiqueta: 'Solo obras horizontales', opciones: [{ v: true, t: 'Sí' }, { v: false, t: 'No' }] },
     { clave: 'cuartoSonos', etiqueta: 'Bocina Sonos', opciones: [{ v: 'Diego', t: 'Diego' }] },
     { clave: 'brillo', etiqueta: 'Brillo', barra: true, opciones: [10,20,30,40,50,60,70,80,90,100].map(function (n) { return { v: n, t: n + ' %' }; }) },
     { clave: 'brilloNoche', etiqueta: 'Brillo de noche', barra: true, opciones: [10,20,30,40,50,60,70,80,90,100].map(function (n) { return { v: n, t: n + ' %' }; }) },
     { clave: 'cerrar', etiqueta: 'Cerrar', boton: true }
   ];
 
-  var PREDETERMINADO = { coleccion: 'impresionismo', intervalo: 15, ciudad: 0, estilo: 'vidrio', ajuste: 'llenar', liquido: 70, posReloj: 'arriba', formato24: false, horizontales: true, brillo: 100, brilloNoche: 50, cuartoSonos: 'Diego', obraFija: null, mezclarFavoritas: true, misFotos: true };
+  var PREDETERMINADO = { coleccion: 'fotos', intervalo: 15, ciudad: 0, estilo: 'vidrio', ajuste: 'llenar', liquido: 70, posReloj: 'arriba', formato24: false, horizontales: true, brillo: 100, brilloNoche: 50, cuartoSonos: 'Diego', obraFija: null, mezclarFavoritas: true, misFotos: true };
 
   var DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
   var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -117,6 +155,8 @@
       // Versión 2: el estilo nuevo de pantalla completa es el de fábrica.
       if (g.version !== 2) a.estilo = 'vidrio';
       if (g.noche === false && g.brilloNoche === undefined) a.brilloNoche = 100;
+      // Solo quedan Mis fotos, Obras de arte y Sol de la Playita
+      if (['fotos', 'favoritas', 'sol'].indexOf(a.coleccion) < 0) a.coleccion = 'fotos';
     } catch (e) { /* sin almacenamiento: se usan los valores de fábrica */ }
     return a;
   }
@@ -178,8 +218,8 @@
 
   function rellenarPila() {
     var col = coleccionActual();
-    if (col.favoritas || col.fotos) {
-      var lista = barajar((col.fotos && FOTOS.length ? FOTOS : FAVORITAS).slice());
+    if (col.favoritas || col.fotos || col.sol) {
+      var lista = barajar(((col.fotos || col.sol) && FOTOS.length ? FOTOS : FAVORITAS).slice());
       if (obraActual && lista[0].id === obraActual.id) lista.push(lista.shift());
       pila = pila.concat(lista);
       return Promise.resolve();
@@ -343,6 +383,11 @@
   function obtenerSiguiente() {
     obrasNuevas++;
     var col = coleccionActual();
+    if (col.sol) {
+      faseVista = faseSolar(new Date());
+      var os = obraSol(faseVista);
+      if (os) return Promise.resolve(os);
+    }
     var especiales = [];
     if (!col.favoritas && !col.fotos) {
       if (ajustes.mezclarFavoritas) especiales = especiales.concat(FAVORITAS);
@@ -391,6 +436,20 @@
     })();
   }
 
+  // Sol de la Playita: ◀ ▶ dejan ver las otras horas; al cambiar la fase del sol vuelve sola a la de ahora
+  function verFase(d) {
+    if (cargando) return;
+    var actual = (obraActual && obraActual.fase) || faseVista || 1;
+    var n = ((actual - 1 + d + 6) % 6) + 1, o = obraSol(n);
+    if (!o || !SOL[n]) { avisar('Faltan las imágenes de Sol de la Playita'); return; }
+    cargando = true;
+    mostrarObra(o).then(function () { cargando = false; }, function () { cargando = false; });
+  }
+  setInterval(function () {
+    if (!coleccionActual().sol || pausado || cargando) return;
+    if (faseSolar(new Date()) !== faseVista) siguiente();
+  }, 60 * 1000);
+
   function anterior() {
     if (cargando || posHistorial <= 0) { avisar('Esta es la primera obra'); return; }
     posHistorial--;
@@ -407,6 +466,7 @@
 
   function programar(ms) {
     clearTimeout(temporizador);
+    if (coleccionActual().sol && !ms) return;   // en Sol de la Playita manda el sol, no el reloj
     if ((pausado || !+ajustes.intervalo) && !ms) return;
     temporizador = setTimeout(siguiente, ms || ajustes.intervalo * 60 * 1000);
   }
@@ -946,7 +1006,8 @@
       else if (t === 'atras' || t === 'menu') cerrarPanel();
       return;
     }
-    if (t === 'der') siguiente();
+    if (coleccionActual().sol && (t === 'der' || t === 'izq')) verFase(t === 'der' ? 1 : -1);
+    else if (t === 'der') siguiente();
     else if (t === 'izq') anterior();
     else if (t === 'menu') abrirPanel();
     else if (t === 'pausa') window.alPausa();

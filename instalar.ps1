@@ -12,7 +12,7 @@
 
 $ProgressPreference = 'SilentlyContinue'
 $carpeta = Join-Path $env:USERPROFILE 'marco-arte'
-New-Item -ItemType Directory -Force $carpeta, (Join-Path $carpeta 'fotos') | Out-Null
+New-Item -ItemType Directory -Force $carpeta, (Join-Path $carpeta 'fotos'), (Join-Path $carpeta 'sol') | Out-Null
 Set-Location $carpeta
 
 $paquete = 'dev.diegovvo.marcoarte'
@@ -135,6 +135,12 @@ if ($sharp) {
         Write-Host "  $($f.Name)"
     }
     Write-Host "  $($fotos.Count) fotos copiadas."
+
+    # Sol de la Playita: 1-amanecer, 2-manana, 3-mediodia, 4-tarde, 5-atardecer, 6-noche
+    & $adb -s $sharp shell "rm -rf '$destino/sol'; mkdir -p '$destino/sol'"
+    $sol = Get-ChildItem (Join-Path $carpeta 'sol') -File | Where-Object { $_.Extension -match '^\.(jpe?g|png|webp)$' }
+    foreach ($f in $sol) { & $adb -s $sharp push $f.FullName "$destino/sol/$($f.Name)" | Out-Null }
+    Write-Host "  $($sol.Count) imagenes de Sol de la Playita copiadas."
 
 # ---------- Spotify (solo la primera vez, o si borras spotify.json)
     $archivoSpotify = Join-Path $carpeta 'spotify.json'
