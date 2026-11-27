@@ -54,16 +54,10 @@
       { titulo: 'Subir ejercicio de Colab', vence: 'Viernes' },
       { titulo: 'Comprar cable USB‑C a HDMI', vence: '' }
     ],
-    claude: { cuando: 'hace 12 min', temas: [
-      { titulo: 'App Marco Arte para la tele', nota: 'Centro de control vertical' },
-      { titulo: 'Venta a restaurantes CDMX', nota: 'Guion de primer contacto' },
-      { titulo: 'Intercambio en Madrid', nota: 'Sigue la cita de visa' }
-    ] },
     musica: { titulo: 'Vagabundo', artista: 'Sebastián Yatra, Manuel Turizo, Beéle', pos: 83, dur: 215, leido: Date.now(), sonando: true, portada: '' },
     aparatos: [
       { nombre: 'Laptop', icono: 'laptop', on: true, bateria: 66, carga: true, estado: '' },
       { nombre: 'iPad', icono: 'tablet', on: true, bateria: 54, estado: '' },
-      { nombre: 'iPhone', icono: 'telefono', on: true, bateria: 82, estado: '' },
       { nombre: 'Sonos Diego', icono: 'bocina', on: true, estado: 'Sonando' },
       { nombre: 'TV', icono: 'tele', on: true, estado: 'Prendida' }
     ],
@@ -273,16 +267,6 @@
     } else {
       vacio('pendientes', 'Falta el Atajo del iPhone');
       texto('pend-resumen', '');
-    }
-
-    if (D.claude && D.claude.temas && D.claude.temas.length) {
-      texto('claude-cuando', D.claude.fecha ? haceCuanto(D.claude.fecha) : (D.claude.cuando || ''));
-      poner('claude', D.claude.temas.slice(0, 3).map(function (t) {
-        return '<li>' + esc(t.titulo) + '<small>' + esc(t.nota || '') + '</small></li>';
-      }).join(''));
-    } else {
-      texto('claude-cuando', '');
-      vacio('claude', 'Pronto: el resumen de tus chats');
     }
 
     var m = D.musica;
@@ -606,8 +590,8 @@
     });
   }
 
-  // iPhone: el Atajo manda recordatorios, alarmas y batería al buzón de la tele
-  // Formato: {"recordatorios": "Título | vence\n…", "alarmas": "7:00 a.m.\n…", "bateria": 82}
+  // iPhone: el Atajo manda recordatorios y alarmas al buzón de la tele
+  // Formato: {"recordatorios": "Título | vence\n…", "alarmas": "7:00 a.m.\n…"}
   // Días en que se repite una alarma: "lun. y mié.", "Lunes, Miércoles", "Todos los días", "Entre semana", "Mon, Wed"...
   function diasDeAlarma(t) {
     t = String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -667,12 +651,6 @@
     D.alarma = proximaAlarma(j.alarmas);
     D.iphoneVisto = new Date(j.enviado || Date.now());
     repintar();
-  }
-
-  // Resumen de Claude (lo deja una tarea automática)
-  function leerClaude() {
-    var j = leerJSON('claude');
-    if (j && j.temas) { D.claude = { temas: j.temas, fecha: j.actualizado ? new Date(j.actualizado) : null }; repintar(); }
   }
 
   // Sonos: qué suena en el cuarto, leído directo de la bocina
@@ -735,10 +713,7 @@
     var sOn = D.sonosEstado !== '' && D.sonosEstado != null;
     lista.push({ nombre: 'Sonos ' + (CONFIG.cuartoSonos || 'Diego'), icono: 'bocina', on: !D.sonosVisto || D.sonosEstado === 'PLAYING' || D.sonosEstado === 'TRANSITIONING',
       estado: !D.sonosVisto ? 'Buscando…' : !sOn ? 'Sin conexión' : D.sonosEstado === 'PLAYING' ? 'Sonando' : 'En pausa' });
-    var iOn = !!D.iphone && ahora - D.iphoneVisto < 3 * 3600000;
-    lista.push({ nombre: 'iPhone', icono: 'telefono', on: iOn, bateria: iOn ? pct(D.iphone.bateria) : null, carga: iOn && siCarga(D.iphone.cargando),
-      estado: D.iphone ? 'Sin conexión' : 'Falta el Atajo' });
-    // Orden: arriba Laptop, iPad, iPhone; abajo Sonos y TV
+    // Orden: arriba Laptop y iPad; abajo Sonos y TV
     var ORDEN = { laptop: 0, tablet: 1, telefono: 2, bocina: 3, tele: 4 };
     lista.sort(function (x, y) { return (ORDEN[x.icono] != null ? ORDEN[x.icono] : 9) - (ORDEN[y.icono] != null ? ORDEN[y.icono] : 9); });
     D.aparatos = lista.slice(0, 6);
@@ -774,10 +749,9 @@
     setTimeout(function () { repintarPendiente = false; D.actualizado = new Date(); armarAparatos(); pintar(D); }, 50);
   }
 
-  // Cuando llega algo al buzón (iPhone, laptop, Sharp o Claude), se vuelve a leer al momento
+  // Cuando llega algo al buzón (iPhone, laptop o Sharp), se vuelve a leer al momento
   window.alDatos = function (nombre) {
     if (nombre === 'iphone') leerIphone();
-    else if (nombre === 'claude') leerClaude();
     else repintar();
   };
 
@@ -788,13 +762,13 @@
     var vuelo = fechaISO(CONFIG.madrid) || new Date(2027, 0, 9);
     var clases = fechaISO(CONFIG.clases) || new Date(2027, 0, 14);
     D.cuenta = { titulo: 'Madrid', fecha: vuelo, clases: clases };
-    leerIphone(); leerClaude();
+    leerIphone();
     actualizarClima(); setInterval(actualizarClima, 20 * 60000);
     actualizarCambio(); setInterval(actualizarCambio, 2 * 3600000);
     actualizarCalendario(); setInterval(actualizarCalendario, 10 * 60000);
     actualizarSonos(); setInterval(actualizarSonos, 5000);
     actualizarPresencia(); setInterval(actualizarPresencia, 20000);
-    setInterval(function () { leerIphone(); leerClaude(); repintar(); }, 30000);
+    setInterval(function () { leerIphone(); repintar(); }, 30000);
     repintar();
   }
 

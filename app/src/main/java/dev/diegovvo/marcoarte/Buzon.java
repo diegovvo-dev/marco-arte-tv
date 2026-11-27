@@ -13,11 +13,10 @@ import java.util.Locale;
  * "Buzón" del centro de control: un servidor pequeño en el Wi-Fi de la casa (puerto 8765)
  * donde el iPhone (con un Atajo) y la laptop dejan sus datos como JSON.
  *
- *   POST /iphone   -> iphone.json   (recordatorios, alarmas, batería)
+ *   POST /iphone   -> iphone.json   (recordatorios y alarmas)
  *   POST /ipad     -> ipad.json     (batería, cargando)
  *   POST /laptop   -> laptop.json   (batería, cargando)
  *   POST /tele     -> tele.json     (lo que muestra la Sharp)
- *   POST /claude   -> claude.json   (resumen de lo que trabajas con Claude)
  *   GET  /         -> "ok" (para probar la conexión desde el navegador)
  *
  * Solo acepta esos nombres y como máximo 256 KB por envío.
@@ -26,7 +25,7 @@ class Buzon {
     interface Aviso { void llego(String nombre); }
 
     static final int PUERTO = 8765;
-    private static final String[] PERMITIDOS = {"iphone", "ipad", "laptop", "tele", "claude"};
+    private static final String[] PERMITIDOS = {"iphone", "ipad", "laptop", "tele"};
     private final File carpeta;
     private final Aviso aviso;
     private ServerSocket servidor;
