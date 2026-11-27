@@ -86,7 +86,7 @@ body { font-family: var(--letra); -webkit-font-smoothing: antialiased; cursor: n
 .pildora { font-size: 15px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #06101f; background: var(--acento);
   padding: 3px 9px; border-radius: 99px; margin-left: 10px; vertical-align: 3px; }
 .lista.manana li { font-size: 21px; padding: 6px 0; color: var(--suave); }
-.lista.manana .cuando { color: var(--tenue); font-size: 19px; width: 160px; }
+.lista.manana .cuando { color: var(--tenue); font-size: 19px; width: 190px; }
 #eventos-manana { margin-top: 6px; border-top: 1px solid var(--linea); }
 #eventos-manana li:first-child { border-top: 0; padding-top: 12px; }
 
@@ -254,7 +254,7 @@ html, body { position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
 
 /* Aparatos del cuarto: pequeñas burbujas de vidrio */
 #aparatos { row-gap: 14px; column-gap: 14px; }
-#aparatos li { width: calc((100% - 14px) / 2); padding: 14px 16px; border-radius: 22px;
+#aparatos li { width: calc((100% - 42px) / 4); padding: 14px 16px; border-radius: 22px;
   background: radial-gradient(120% 100% at 50% -20%, rgba(255,255,255,.1), rgba(255,255,255,.025) 70%);
   box-shadow: inset 0 1.5px 1px -0.5px rgba(255,255,255,.45), inset 0 -1px 1px -0.5px rgba(255,255,255,.15), inset 0 0 12px rgba(255,255,255,.05); }
 #aparatos li.off { background: transparent; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }

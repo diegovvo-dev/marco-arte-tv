@@ -46,7 +46,9 @@
     ],
     manana: [
       { ini: enDias(1, 8, 0), titulo: 'Negocios Globales' },
-      { ini: enDias(1, 17, 0), titulo: 'Entrega de muestras a restaurante' }
+      { ini: enDias(1, 17, 0), titulo: 'Entrega de muestras a restaurante' },
+      { ini: enDias(3, 0, 0), titulo: 'Último día para pagar IBERO', todoElDia: true, color: '#ff3b30' },
+      { ini: enDias(5, 19, 0), titulo: 'Junta Los Primos', color: '#ff9500' }
     ],
     pendientes: [
       { titulo: 'Agendar cita de visa en BLS', vence: 'Hoy', urgente: true },
@@ -246,8 +248,14 @@
         }).join(''));
       } else vacio('eventos', 'Nada en el calendario hoy');
       texto('hoy-resumen', siguen.length ? (siguen.length === 1 ? '1 por delante' : siguen.length + ' por delante') : 'Nada más hoy');
-      poner('eventos-manana', (D.manana || []).slice(0, 2).map(function (e) {
-        return '<li><span class="color" style="background:' + (e.color || 'transparent') + '"></span><span class="cuando">Mañana ' + (e.todoElDia ? '' : hora12(e.ini, false)) + '</span><span class="que">' + esc(e.titulo) + '</span></li>';
+      // Próximos 7 días (después de hoy): entre hoy y lo que sigue, máximo 5 renglones
+      var cupo = Math.max(2, 5 - visibles.length);
+      var DIAS_P = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      var man0 = new Date(ahora); man0.setHours(0, 0, 0, 0); man0.setDate(man0.getDate() + 1);
+      poner('eventos-manana', (D.manana || []).slice(0, cupo).map(function (e) {
+        var d0 = new Date(e.ini); d0.setHours(0, 0, 0, 0);
+        var dia = d0.getTime() === man0.getTime() ? 'Mañana' : DIAS_P[e.ini.getDay()] + ' ' + e.ini.getDate();
+        return '<li><span class="color" style="background:' + (e.color || 'transparent') + '"></span><span class="cuando">' + dia + (e.todoElDia ? '' : ' ' + hora12(e.ini, false)) + '</span><span class="que">' + esc(e.titulo) + '</span></li>';
       }).join(''));
     } else {
       var links = CONFIG.calendarios || (CONFIG.calendario ? [CONFIG.calendario] : []);
@@ -568,7 +576,7 @@
     if (!links.length) return;
     var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     var manana = new Date(hoy); manana.setDate(hoy.getDate() + 1);
-    var pasado = new Date(hoy); pasado.setDate(hoy.getDate() + 2);
+    var pasado = new Date(hoy); pasado.setDate(hoy.getDate() + 8);
     var pendientes = links.length, todos = [], alguno = false, errores = [];
     links.forEach(function (link) {
       descargar(link.url).then(function (t) {
@@ -604,18 +612,22 @@
     claves.forEach(function (c, i) { if (c.some(function (k) { return new RegExp('\\b' + k).test(t); })) dias.push(i); });
     return dias.length ? dias : null;
   }
+  // Cada alarma: "HH:mm | días | activada", separadas por "##" o por renglón.
+  // Las que dicen No / Falso / 0 en "activada" se ignoran.
   function proximaAlarma(texto) {
     var ahora = new Date(), mejor = null;
-    var lineas = String(texto || '').split('\n');
+    texto = String(texto || '');
+    var lineas = texto.indexOf('##') >= 0 ? texto.split('##') : texto.split('\n');
     if (lineas.length === 1 && lineas[0].indexOf('|') < 0) lineas = lineas[0].split(',');
     lineas.forEach(function (l) {
-      var partes = l.split('|');
-      var m = /(\d{1,2})[:.](\d{2})\s*([ap])?\.?\s*m?\.?/i.exec(partes[0]);
+      var partes = l.replace(/[\r\n]+/g, ' ').split('|').map(function (x) { return x.trim(); });
+      if (partes.slice(1).some(function (x) { return /^(no|false|falso|0|desactivad[ao])$/i.test(x); })) return;
+      var m = /(\d{1,2})\s*[:.]\s*(\d{1,2})\s*([ap])?\.?\s*m?\.?/i.exec(partes[0]);
       if (!m) return;
       var h = +m[1], min = +m[2], ap = (m[3] || '').toLowerCase();
       if (ap === 'p' && h < 12) h += 12;
       if (ap === 'a' && h === 12) h = 0;
-      var dias = diasDeAlarma(partes.slice(1).join(' '));
+      var dias = diasDeAlarma(partes.slice(1).filter(function (x) { return !/^(si|sí|yes|true|verdadero|1|activad[ao])$/i.test(x); }).join(' '));
       for (var k = 0; k < 8; k++) {
         var d = new Date(); d.setDate(d.getDate() + k); d.setHours(h, min, 0, 0);
         if (d <= ahora) continue;
